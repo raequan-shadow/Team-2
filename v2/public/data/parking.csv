@@ -1,7 +1,7 @@
-id,name,location,totalCapacity,occupiedSpaces,availableSpaces,occupancy,status,lastUpdated,isDataAvailable,dataType
-D01,Main Deck,Main campus,300,45,255,15.0,Green,2026-11-05T13:24:11-05:00,true,demo
-D02,Union Deck,Near Student Union,1200,1180,20,98.33,Red,2026-11-05T13:24:11-05:00,true,demo
-D03,East Deck 2,East campus area,650,560,90,86.15,Yellow,2026-11-05T13:24:11-05:00,true,demo
-D04,North Deck,North campus area,600,40,560,6.67,Green,2026-11-05T13:24:11-05:00,true,demo
-D05,South Village Deck,South Village area,800,560,240,70.0,Green,2026-11-05T13:24:11-05:00,true,demo
-D06,West Deck,West campus area,400,392,8,98.0,Red,2026-11-05T13:24:11-05:00,true,demo
+id,name,location,totalCapacity,occupiedSpaces,availableSpaces,occupancy,status,lastUpdated,isDataAvailable,dataType,sensorStatus
+D01,Main Deck,Main campus,300,45,255,15.0,Green,2026-11-05T13:24:11-05:00,true,demo,online
+D02,Union Deck,Near Student Union,1200,1180,20,98.33,Red,2026-11-05T13:24:11-05:00,true,demo,online
+D03,East Deck 2,East campus area,650,560,90,86.15,Yellow,2026-11-05T13:24:11-05:00,true,demo,online
+D04,North Deck,North campus area,600,40,560,6.67,Green,2026-11-05T13:24:11-05:00,true,demo,online
+D05,South Village Deck,South Village area,800,560,240,70.0,Green,2026-11-05T13:24:11-05:00,true,demo,online
+D06,West Deck,West campus area,400,392,8,98.0,Red,2026-11-05T13:24:11-05:00,true,demo,stale

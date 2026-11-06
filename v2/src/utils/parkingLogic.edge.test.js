@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { availableSpaces, availabilityStatus, parseParkingCsv, simulateOccupancy } from './parkingLogic.js';
+import { availableSpaces, availabilityStatus, occupancyLevel, parseParkingCsv, sensorHealth, simulateOccupancy } from './parkingLogic.js';
 import csv from '../../public/data/parking.csv?raw';
 const base = { id: '1', name: 'Deck', totalCapacity: 200, occupiedSpaces: 100, isDataAvailable: true };
 
@@ -87,5 +87,32 @@ describe('simulateOccupancy', () => {
     const input = [{ ...base }];
     simulateOccupancy(input, () => 0);
     expect(input[0].occupiedSpaces).toBe(100);
+  });
+});
+
+describe('PATS helpers', () => {
+  test('occupancyLevel follows the driver color thresholds', () => {
+    expect(occupancyLevel({ ...base, occupiedSpaces: 160 })).toBe('Normal');
+    expect(occupancyLevel({ ...base, occupiedSpaces: 161 })).toBe('Approaching capacity');
+    expect(occupancyLevel({ ...base, occupiedSpaces: 191 })).toBe('At capacity');
+    expect(occupancyLevel({ ...base, occupiedSpaces: null, isDataAvailable: false })).toBe('No data');
+  });
+
+  test('sensorHealth reports online, stale and offline', () => {
+    expect(sensorHealth({ ...base, sensorStatus: 'online' })).toBe('Online');
+    expect(sensorHealth(base)).toBe('Online');
+    expect(sensorHealth({ ...base, sensorStatus: 'stale' })).toBe('Stale');
+    expect(sensorHealth({ ...base, sensorStatus: 'offline' })).toBe('Offline');
+    expect(sensorHealth({ ...base, occupiedSpaces: null, isDataAvailable: false })).toBe('Offline');
+  });
+
+  test('stale sensors stop updating during simulation', () => {
+    const stale = { ...base, sensorStatus: 'stale' };
+    expect(simulateOccupancy([stale], () => 0)[0]).toBe(stale);
+  });
+
+  test('shipped CSV marks West Deck stale and defaults missing sensor status to online', () => {
+    expect(parseParkingCsv(csv).map(d => d.sensorStatus)).toEqual(['online', 'online', 'online', 'online', 'online', 'stale']);
+    expect(parseParkingCsv('id,name,location,totalCapacity,occupiedSpaces,isDataAvailable\nD1,X,Y,100,40,true')[0].sensorStatus).toBe('online');
   });
 });
