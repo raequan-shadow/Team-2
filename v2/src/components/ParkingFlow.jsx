@@ -30,22 +30,27 @@ export default function ParkingFlow({ deck, onBack }) {
 
   return <section className="flow-overlay" aria-label="Parking simulation">
     <div className="flow-card">
-      <div className="flow-nav"><button type="button" className="back-link" onClick={onBack}>← All parking decks</button><span>SIMULATED DRIVER FLOW</span></div>
-      <p className="eyebrow">{deck.name} · Level 1 (illustrative)</p>
+      <div className="flow-nav"><button type="button" className="back-link" onClick={onBack}>← All parking decks</button></div>
+      {/*<div className="flow-nav"><button type="button" className="back-link" onClick={onBack}>← All parking decks</button><span>SIMULATED DRIVER FLOW</span></div>*/}
+      <p className="eyebrow">{deck.name} · Level 1 </p>
+      {/*<p className="eyebrow">{deck.name} · Level 1 (illustrative)</p>*/}
       {step === 'choose' && <>
         <h2>Choose an available spot</h2>
-        <p className="flow-muted">{open === null ? 'Occupancy data unavailable.' : `${open} spaces reported available across this deck.`} The A1–A6 examples below are generated for the prototype and do not represent real spaces.</p>
+        <p className="flow-muted">{open === null ? 'Occupancy data unavailable.' : `${open} spaces reported available across this deck.`}</p>
+        {/*<p className="flow-muted">{open === null ? 'Occupancy data unavailable.' : `${open} spaces reported available across this deck.`} The A1–A6 examples below are generated for the prototype and do not represent real spaces.</p>*/}
         <div className="flow-banner">{ready ? `✓ You selected ${spotId}` : 'Select a green spot below'}</div>
-        <div className="spot-heading"><strong>Level 1</strong><small>Entrance →</small></div>
+        {/*<div className="spot-heading"><strong>Level 1</strong><small>Entrance →</small></div>*/}
         <div className="spot-row">{spots.map(spot => <button key={spot.id} type="button" className={`spot ${spot.free ? 'spot-free' : 'spot-taken'} ${spotId === spot.id ? 'spot-selected' : ''}`} disabled={!spot.free || open === null} aria-pressed={spotId === spot.id} onClick={() => setSpotId(spot.id)}>{spot.id}<span>{spot.free ? 'FREE' : 'TAKEN'}</span></button>)}</div>
-        <p className="legend">🟢 Demo free &nbsp; 🔴 Demo taken &nbsp; · &nbsp; Not real-time spot sensing</p>
+        <p className="legend">🟢 free &nbsp; 🔴 taken &nbsp; · &nbsp;</p>
+        {/*<p className="legend">🟢 Demo free &nbsp; 🔴 Demo taken &nbsp; · &nbsp; Not real-time spot sensing</p>*/}
         <div className="flow-instructions"><strong>When you get there</strong><p>Drive to the selected deck and confirm the space is actually open. This demonstration does not reserve or verify a real parking spot.</p></div>
         <button className="primary-action" disabled={!ready || open === null} onClick={() => setStep('confirm')}>Continue with {spotId || 'a spot'} →</button>
       </>}
       {step === 'confirm' && <>
         <h2>Spot {spotId} is shown as free</h2><div className="spot-hero"><small>DEMO PARKING SPOT</small><strong>{spotId}</strong><span>{deck.name} · Level 1</span></div>
         <div className="flow-instructions"><strong>Parking instructions</strong><p>Go to {deck.name}, look for a safe, legal space, and tap below to simulate the start of a parking session. The app does not connect to an entrance gate or vehicle.</p></div>
-        <button className="primary-action" onClick={() => { setStartedAt(new Date()); setStep('parked'); }}>Tap in · park here (demo)</button>
+        <button className="primary-action" onClick={() => { setStartedAt(new Date()); setStep('parked'); }}>Tap in · park here</button>
+        {/*<button className="primary-action" onClick={() => { setStartedAt(new Date()); setStep('parked'); }}>Tap in · park here (demo)</button>*/}
         <button className="secondary-action" onClick={() => setStep('choose')}>Not here? Choose another spot</button>
       </>}
       {step === 'parked' && <>
@@ -56,10 +61,12 @@ export default function ParkingFlow({ deck, onBack }) {
       {step === 'summary' && <>
         <div className="thanks">✓</div><h2>Thanks for trying SmartPark!</h2><p className="flow-muted">Your demonstration parking session has ended.</p>
         <div className="flow-instructions"><p><strong>Deck:</strong> {deck.name}</p><p><strong>Spot:</strong> {spotId} · Level 1</p><p><strong>Tap in:</strong> {timeText(startedAt)}</p><p><strong>Tap out:</strong> {timeText(endedAt)}</p><p><strong>Duration:</strong> {duration} minutes</p></div>
-        <button className="primary-action" onClick={reset}>See demo spots again</button>
+        <button className="primary-action" onClick={reset}>See spots again</button>
+        {/*<button className="primary-action" onClick={reset}>See demo spots again</button>*/}
         <button className="secondary-action" onClick={onBack}>Back to all decks</button>
       </>}
-      <p className="demo-note">Prototype only · no real reservation, NFC, vehicle tracking, or campus parking integration.</p>
+      
+      {/*<p className="demo-note">Prototype only · no real reservation, NFC, vehicle tracking, or campus parking integration.</p>*/}
     </div>
   </section>;
 }
