@@ -7,3 +7,10 @@
 .status-legend{list-style:none;display:flex;flex-wrap:wrap;gap:8px 18px;margin:-6px 0 18px;padding:0;font-size:12px;color:#667a8d}
 .status-legend li{display:flex;align-items:center;gap:7px}
 .deck-updated{font-size:11px;color:#7a8795;margin:8px 0 0}
+
+/* Issue #2: per-level, per-section spot picker */
+.level-tabs{display:flex;gap:8px;margin:0 0 6px}
+.level-tab{border:1px solid #dbe3e9;background:#fbfcfd;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:800;color:#23364a;cursor:pointer}
+.level-tab[aria-pressed="true"]{background:#10253b;border-color:#10253b;color:#fff}
+.spot-row{grid-template-columns:repeat(4,minmax(0,1fr))}
+.flow-card .unavailable-note{margin:12px 0}

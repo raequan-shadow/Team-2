@@ -48,12 +48,12 @@ To stop the development server, press **Ctrl + C** in the terminal.
 The application also includes clickable screens based on later driver-flow designs:
 
 1. Choose a deck.
-2. Select an illustrated green parking spot (for example, A2 or A6).
+2. Pick a level, then select a green spot in Section A or B (for example, 1A-02). Spot statuses refresh every 30 seconds.
 3. Continue to the selected spot's instructions.
 4. Use the simulated **Tap in** and **Tap out** actions.
 5. View a simulated parking-session summary.
 
-**Limitations:** The CSV contains deck-level occupancy, **not real per-spot availability**. Individual spot labels, parking sessions, and tap-in/tap-out actions are demonstrations only. They do not reserve a real space, track a real vehicle, access NFC hardware, or connect to campus systems. Reloading the page resets the local demo session.
+**Limitations:** Per-spot data comes from the simulated `public/data/spots.csv`, which only covers Main Deck, East Deck 2 and South Village Deck (two levels each). Other decks show an "individual-space data is unavailable" message. Spot statuses, parking sessions, and tap-in/tap-out actions are demonstrations only. They do not reserve a real space, track a real vehicle, access NFC hardware, or connect to campus systems. Reloading the page resets the local demo session.
 
 ## Simulated data and application structure
 
@@ -64,10 +64,11 @@ Key files and folders in the React app include:
 | Path (inside `v2/`) | Purpose |
 | --- | --- |
 | `public/data/parking.csv` | Starting simulated parking data |
+| `public/data/spots.csv` | Simulated per-spot occupancy by deck, level and section |
 | `src/utils/parkingLogic.js` | Data conversion, availability calculations, status rules, and simulated occupancy changes |
 | `src/hooks/useParkingAvailability.js` | Data loading and automatic refresh |
 | `src/components/` | Reusable interface elements and the interactive parking flow |
-| `src/components/ParkingFlow.jsx` | Deck selection, illustrated spots, and simulated parking actions |
+| `src/components/ParkingFlow.jsx` | Deck selection, spots by level and section, and simulated parking actions |
 | `src/App.jsx` | Main application screens and state |
 | `src/styles.css` | Responsive interface styling |
 
@@ -97,7 +98,8 @@ The first command runs the project's configured automated tests; the second chec
 
 - [ ] Search by a deck name or location and clear the search to restore the full list.
 - [ ] Open and close a deck's details.
-- [ ] Choose a deck and select a green illustrated spot.
+- [ ] Choose a deck, switch levels, and select a green spot.
+- [ ] Choose Union Deck and confirm the "individual-space data is unavailable" message.
 - [ ] Complete the simulated tap-in/tap-out flow and return to the deck list.
 - [ ] Check that the layout is usable on both narrow and wide screens.
 
