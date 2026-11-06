@@ -130,3 +130,10 @@ test('full driver flow: choose deck, pick spot, tap in, tap out, back to list', 
   await waitFor(() => expect(screen.queryByRole('region', { name: 'Parking simulation' })).toBeNull());
   expect(cards()).toHaveLength(6);
 });
+
+test('shows the color key and a per-deck update time', async () => {
+  render(<App />);
+  await screen.findByText('Main Deck');
+  expect(screen.getByRole('list', { name: 'Availability color key' })).toBeTruthy();
+  expect(within(card('Main Deck')).getByText(/^Updated /)).toBeTruthy();
+});
