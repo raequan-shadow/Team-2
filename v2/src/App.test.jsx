@@ -157,3 +157,18 @@ test('PATS staff tab requires sign-in and shows the occupancy dashboard', async 
   await user.click(screen.getByRole('button', { name: 'Find parking' }));
   expect(cards()).toHaveLength(6);
 });
+
+test('Nearby parking tab finds decks near a building and opens the chosen one', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+  await screen.findByText('Main Deck');
+  await user.click(screen.getByRole('button', { name: 'Nearby parking' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Destination building' }), 'Student Union');
+  const first = screen.getAllByRole('listitem')[0];
+  expect(within(first).getByText('Union Deck')).toBeTruthy();
+
+  await user.click(within(first).getByRole('button', { name: /View deck/ }));
+  expect(screen.getByRole('region', { name: 'Parking simulation' })).toBeTruthy();
+  expect(screen.getByText('Union Deck', { selector: '.eyebrow' })).toBeTruthy();
+  expect(window.scrollTo).toHaveBeenCalled();
+});

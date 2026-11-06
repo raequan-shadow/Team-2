@@ -43,6 +43,15 @@ To stop the development server, press **Ctrl + C** in the terminal.
 - Display an unavailable-data message rather than inventing an availability count when occupancy information is missing.
 - Expand a deck card to view additional details.
 
+### Nearby parking — Issue #4
+
+- Open the **Nearby parking** tab and choose a destination building.
+- Decks within an 800 m walk are listed closest first, with available spaces, distance and estimated walking time (80 m/min).
+- Switch between **List** and **Map** views. Click a deck to open it, or use **Directions** to open Google Maps.
+- If no nearby deck has space (try Harris Alumni Center), a message says so.
+
+**Limitation:** building and deck coordinates are approximate, and distances are straight-line, not walking paths.
+
 ### PATS staff occupancy dashboard — Issue #3
 
 - Open the **PATS staff** tab and sign in with the demo PIN **3155**.
@@ -111,6 +120,7 @@ The first command runs the project's configured automated tests; the second chec
 - [ ] Choose a deck, switch levels, and select a green spot.
 - [ ] Choose Union Deck and confirm the "individual-space data is unavailable" message.
 - [ ] Complete the simulated tap-in/tap-out flow and return to the deck list.
+- [ ] Open **Nearby parking**, choose Atkins Library, switch to Map, and open a deck from the map.
 - [ ] Open **PATS staff**, try a wrong PIN, then sign in with 3155 and confirm West Deck shows as Stale.
 - [ ] Check that the layout is usable on both narrow and wide screens.
 
