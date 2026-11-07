@@ -52,16 +52,6 @@ To stop the development server, press **Ctrl + C** in the terminal.
 
 **Limitation:** building and deck coordinates are approximate, and distances are straight-line, not walking paths.
 
-### PATS staff occupancy dashboard — Issue #3
-
-- Open the **PATS staff** tab and sign in with the demo PIN **3155**.
-- The dashboard lists every deck with occupied spaces, capacity, available spaces and occupancy %.
-- Decks are flagged **Approaching capacity** (under 20% open) or **At capacity** (under 5% open).
-- Each deck shows its sensor status: **Online**, **Stale** (count is outdated and frozen) or **Offline** (no data). West Deck is marked stale in the demo CSV.
-- Refreshes every 30 seconds along with the rest of the app.
-
-**Limitation:** the PIN is checked in the browser for demo purposes only. A real dashboard needs server-side authentication.
-
 ### Interactive driver flow — illustrative prototype only
 
 The application also includes clickable screens based on later driver-flow designs:
@@ -120,7 +110,6 @@ The first command runs the project's configured automated tests; the second chec
 - [ ] Choose a deck, switch levels, and select a green spot.
 - [ ] Complete the simulated tap-in/tap-out flow and return to the deck list.
 - [ ] Open **Nearby parking**, choose Atkins Library, switch to Map, and open a deck from the map.
-- [ ] Open **PATS staff**, try a wrong PIN, then sign in with 3155 and confirm West Deck shows as Stale.
 - [ ] Check that the layout is usable on both narrow and wide screens.
 
 ## Collaboration and Git workflow
