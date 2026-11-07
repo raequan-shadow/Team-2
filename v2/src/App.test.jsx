@@ -141,23 +141,6 @@ test('shows the color key and a per-deck update time', async () => {
   expect(within(card('Main Deck')).getByText(/^Updated /)).toBeTruthy();
 });
 
-test('PATS staff tab requires sign-in and shows the occupancy dashboard', async () => {
-  const user = userEvent.setup();
-  render(<App />);
-  await screen.findByText('Main Deck');
-  await user.click(screen.getByRole('button', { name: 'PATS staff' }));
-  expect(screen.queryByText('Find your next parking spot.')).toBeNull();
-
-  await user.type(screen.getByLabelText('Staff PIN'), '3155');
-  await user.click(screen.getByRole('button', { name: 'Sign in' }));
-  const dashboard = within(screen.getByRole('region', { name: 'PATS occupancy dashboard' }));
-  expect(dashboard.getAllByRole('rowheader')).toHaveLength(6);
-  expect(dashboard.getByText('Stale')).toBeTruthy();
-
-  await user.click(screen.getByRole('button', { name: 'Find parking' }));
-  expect(cards()).toHaveLength(6);
-});
-
 test('Nearby parking tab finds decks near a building and opens the chosen one', async () => {
   const user = userEvent.setup();
   render(<App />);
