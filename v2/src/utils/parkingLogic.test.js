@@ -1,0 +1,11 @@
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import { availableSpaces, availabilityStatus, parseParkingCsv, simulateOccupancy } from './parkingLogic.js';
+const base = {id:'1',name:'Deck',totalCapacity:200,occupiedSpaces:100,isDataAvailable:true};
+test('available spaces = total - occupied',()=> assert.equal(availableSpaces(base),100));
+test('green at 20% available',()=>assert.equal(availabilityStatus({...base,occupiedSpaces:160}), 'Green'));
+test('yellow at 5% available',()=>assert.equal(availabilityStatus({...base,occupiedSpaces:190}), 'Yellow'));
+test('red below 5% available',()=>assert.equal(availabilityStatus({...base,occupiedSpaces:199}), 'Red'));
+test('missing occupancy is unavailable',()=>{assert.equal(availableSpaces({...base,occupiedSpaces:null,isDataAvailable:false}),null);assert.equal(availabilityStatus({...base,occupiedSpaces:null,isDataAvailable:false}),'Unavailable')});
+test('update never exceeds capacity',()=>{const updated=simulateOccupancy([{...base,occupiedSpaces:200}],()=>0.99);assert.equal(updated[0].occupiedSpaces,200)});
+test('parse CSV with missing occupancy',()=>{const csv='id,name,location,totalCapacity,occupiedSpaces,isDataAvailable\nD1,North,Main campus,600,,false';assert.equal(parseParkingCsv(csv)[0].occupiedSpaces,null)});
