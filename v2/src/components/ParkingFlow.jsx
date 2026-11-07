@@ -35,7 +35,7 @@ export default function ParkingFlow({ deck, onBack }) {
       {step === 'choose' && <>
         <h2>Choose an available spot</h2>
         <p className="flow-muted">{open === null ? 'Occupancy data unavailable.' : `${open} spaces reported available across this deck.`}</p>
-        <div className="flow-banner">{ready ? `✓ You selected ${spotId}` : 'Select a green spot below'}</div>
+        {levelNames.length > 0 && <div className="flow-banner">{ready ? `✓ You selected ${spotId}` : 'Select a green spot below'}</div>}
         {allSpots === undefined ? <p className="flow-muted" role="status">Loading individual spaces...</p>
           : levelNames.length === 0 ? <p className="unavailable-note" role="status">Individual-space data is unavailable for this deck. Use the deck-level count above and look for an open space when you arrive.</p>
           : <>

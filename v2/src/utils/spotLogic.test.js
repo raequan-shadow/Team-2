@@ -6,17 +6,23 @@ const spots = parseSpotsCsv(csv);
 
 describe('parseSpotsCsv', () => {
   test('reads every spot with a boolean occupied flag', () => {
-    expect(spots).toHaveLength(48);
+    expect(spots).toHaveLength(96);
     expect(spots[0]).toEqual({ deckId: 'D01', level: '1', section: 'A', id: '1A-01', occupied: true });
     expect(spots[1].occupied).toBe(false);
   });
 
   test('spot ids are unique within a deck', () => {
-    for (const deckId of ['D01', 'D03', 'D05']) {
+    for (const deckId of ['D01', 'D02', 'D03', 'D04', 'D05', 'D06']) {
       const ids = spots.filter(s => s.deckId === deckId).map(s => s.id);
       expect(new Set(ids).size).toBe(ids.length);
     }
   });
+});
+
+test('every deck in parking.csv has spot data with at least one free spot', () => {
+  for (const deckId of ['D01', 'D02', 'D03', 'D04', 'D05', 'D06']) {
+    expect(spots.some(s => s.deckId === deckId && !s.occupied)).toBe(true);
+  }
 });
 
 describe('spotsByLevel', () => {
@@ -28,7 +34,7 @@ describe('spotsByLevel', () => {
   });
 
   test('deck without spot data returns no levels', () => {
-    expect(spotsByLevel(spots, 'D02')).toEqual({});
+    expect(spotsByLevel(spots, 'D99')).toEqual({});
   });
 });
 
