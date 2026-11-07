@@ -72,7 +72,7 @@ The application also includes clickable screens based on later driver-flow desig
 4. Use the simulated **Tap in** and **Tap out** actions.
 5. View a simulated parking-session summary.
 
-**Limitations:** Per-spot data comes from the simulated `public/data/spots.csv`, which only covers Main Deck, East Deck 2 and South Village Deck (two levels each). Other decks show an "individual-space data is unavailable" message. Spot statuses, parking sessions, and tap-in/tap-out actions are demonstrations only. They do not reserve a real space, track a real vehicle, access NFC hardware, or connect to campus systems. Reloading the page resets the local demo session.
+**Limitations:** Per-spot data comes from the simulated `public/data/spots.csv`, which covers all six decks (two levels, sections A/B, four sample spots each). A deck missing from that file shows an "individual-space data is unavailable" message. Spot statuses, parking sessions, and tap-in/tap-out actions are demonstrations only. They do not reserve a real space, track a real vehicle, access NFC hardware, or connect to campus systems. Reloading the page resets the local demo session.
 
 ## Simulated data and application structure
 
@@ -118,7 +118,6 @@ The first command runs the project's configured automated tests; the second chec
 - [ ] Search by a deck name or location and clear the search to restore the full list.
 - [ ] Open and close a deck's details.
 - [ ] Choose a deck, switch levels, and select a green spot.
-- [ ] Choose Union Deck and confirm the "individual-space data is unavailable" message.
 - [ ] Complete the simulated tap-in/tap-out flow and return to the deck list.
 - [ ] Open **Nearby parking**, choose Atkins Library, switch to Map, and open a deck from the map.
 - [ ] Open **PATS staff**, try a wrong PIN, then sign in with 3155 and confirm West Deck shows as Stale.

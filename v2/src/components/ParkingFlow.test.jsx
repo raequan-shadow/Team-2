@@ -54,10 +54,16 @@ describe('spots by level and section', () => {
   });
 
   test('deck without spot data shows a message and cannot continue', async () => {
-    await renderFlow({ ...deck, id: 'D02', name: 'Union Deck' });
+    await renderFlow({ ...deck, id: 'D99', name: 'New Deck' });
     expect(screen.getByText(/Individual-space data is unavailable for this deck/)).toBeTruthy();
     expect(spotButtons()).toEqual([]);
+    expect(screen.queryByText('Select a green spot below')).toBeNull();
     expect(screen.getByRole('button', { name: /Continue with a spot/ }).disabled).toBe(true);
+  });
+
+  test('West Deck has spot data and its one free spot can be picked', async () => {
+    await renderFlow({ ...deck, id: 'D06', name: 'West Deck', totalCapacity: 400, occupiedSpaces: 392 });
+    expect(freeSpots()).toEqual(['1A-04']);
   });
 
   test('failed spot data load shows the same message', async () => {
