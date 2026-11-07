@@ -53,6 +53,63 @@ export default function ParkingFlow({ deck, onBack }) {
         {/*<button className="primary-action" onClick={() => { setStartedAt(new Date()); setStep('parked'); }}>Tap in · park here (demo)</button>*/}
         <button className="secondary-action" onClick={() => setStep('choose')}>Not here? Choose another spot</button>
       </>}
+
+      {step === 'taken' && <>
+        <h2>Spot is Taken</h2>
+
+        <div className="spot-hero">
+          <small>SPOT IS TAKEN</small>
+          <strong>{spotId}</strong>
+          <span>{deck.name} · Level 1</span>
+        </div>
+
+        <div className="flow-instructions">
+          <strong>Sorry, this spot is unavailable.</strong>
+          <p>
+            You reported that spot {spotId} is occupied.
+            Here are other demo spots in the same
+            parking deck that may be available.
+          </p>
+        </div>
+
+        <h3>Closest open spots</h3>
+
+        <div className="spot-alternatives">
+          {spots.filter(
+            spot => spot.free && spot.id !== spotId
+          ).length > 0 ? (
+            spots
+              .filter(spot => spot.free && spot.id !== spotId)
+              .map(spot => (
+                <button
+                  key={spot.id}
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => {
+                    setSpotId(spot.id);
+                    setStep('confirm');
+                  }}
+                >
+                  {spot.id} · Level 1 — Free (demo)
+                </button>
+              ))
+          ) : (
+            <p className="flow-muted">
+              No other demo spots are currently shown
+              as available in this deck.
+            </p>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="secondary-action"
+          onClick={() => setStep('choose')}
+        >
+          See the full deck
+        </button>
+      </>}
+
       {step === 'parked' && <>
         <h2>✓ You're parked (demo)</h2><div className="spot-hero spot-hero-blue"><small>YOUR DEMO SPOT</small><strong>{spotId}</strong><span>{deck.name} · Level 1</span></div>
         <div className="flow-instructions"><p><strong>Started:</strong> {timeText(startedAt)}</p><p><strong>Status:</strong> Simulated parking session in this browser tab.</p><p>When you're ready, tap out to generate a demo summary.</p></div>
@@ -64,8 +121,17 @@ export default function ParkingFlow({ deck, onBack }) {
         <button className="primary-action" onClick={reset}>See spots again</button>
         {/*<button className="primary-action" onClick={reset}>See demo spots again</button>*/}
         <button className="secondary-action" onClick={onBack}>Back to all decks</button>
+
+        <button
+          type="button"
+          className="danger-action"
+          onClick={() => setStep('taken')}
+        >
+          My spot is already taken
+        </button>
+
       </>}
-      
+
       {/*<p className="demo-note">Prototype only · no real reservation, NFC, vehicle tracking, or campus parking integration.</p>*/}
     </div>
   </section>;
