@@ -6,6 +6,7 @@ import DeckList from './components/DeckList.jsx';
 import EmptyState from './components/EmptyState.jsx';
 import { useParkingAvailability } from './hooks/useParkingAvailability.js';
 import ParkingFlow from './components/ParkingFlow.jsx';
+import StatusLegend from './components/StatusLegend.jsx';
 import { availableSpaces } from './utils/parkingLogic.js';
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
     <section className="overview" aria-label="Parking overview"><div><span className="overview-label">Parking decks</span><strong>{decks.length}</strong></div><div><span className="overview-label">Spaces available</span><strong>{availableTotal.toLocaleString()}</strong></div><div><span className="overview-label">Reporting decks</span><strong>{reporting}/{decks.length}</strong></div></section>
     <section className="listing"><div className="listing-heading"><div><h2>Parking availability</h2><p>Updates automatically every 30 seconds while this page is open.</p></div><span className="updated">{lastRefresh ? `Updated ${lastRefresh.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}` : 'Loading...'}</span></div>
       <SearchBar value={query} onChange={setQuery}/>
+      <StatusLegend/>
       {loading ? <EmptyState message="Loading demo parking data..."/> : error ? <EmptyState message={error}/> : filtered.length === 0 ? <EmptyState message="No parking decks match that search."/> : <DeckList decks={filtered} expandedId={expandedId} onExpand={setExpandedId} onChoose={id => { setSelectedDeckId(id); window.scrollTo({top:0,behavior:'smooth'}); }}/>}
      </section> 
      <footer>Disclaimer: All data displayed on the website is simulated and for demonstration purposes only and does not represent actual UNC Charlotte parking availability.</footer>
