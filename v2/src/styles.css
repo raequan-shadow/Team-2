@@ -32,3 +32,20 @@
 .sensor-offline{color:#b53333}
 .outdated{color:#9b6b0a;font-size:11px}
 .staff-signout{max-width:160px}
+
+/* Issue #4: nearby parking list and map */
+.building-select{border:none;background:transparent;flex:1;min-width:0;padding:14px 0;font:inherit;font-size:14px;outline:none}
+.nearby-list{list-style:none;padding:0;margin:14px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.nearby-item{border:1px solid #e2e7eb;border-radius:15px;padding:18px}
+.nearby-spaces{font-size:14px;font-weight:700;color:#164f38;margin:14px 0 0}
+.nearby-actions{display:flex;align-items:center;gap:14px}
+.nearby-actions .choose-button{flex:1}
+.directions-link{margin-top:15px;color:#168457;font-weight:800;font-size:13px}
+.campus-map{width:100%;max-height:420px;margin-top:14px;background:#eef3f0;border-radius:14px}
+.map-path{stroke:#9fb3c4;stroke-width:1.5;stroke-dasharray:4 4}
+.map-building{fill:#10253b}
+.map-label{font-size:10px;font-weight:700;fill:#23364a}
+.map-deck{cursor:pointer}
+.map-deck:focus{outline:none}
+.map-deck:focus circle{stroke:#10253b;stroke-width:3}
+@media(max-width:700px){.nearby-list{grid-template-columns:1fr}}
