@@ -7,7 +7,6 @@ import EmptyState from './components/EmptyState.jsx';
 import { useParkingAvailability } from './hooks/useParkingAvailability.js';
 import ParkingFlow from './components/ParkingFlow.jsx';
 import StatusLegend from './components/StatusLegend.jsx';
-import StaffDashboard from './components/StaffDashboard.jsx';
 import NearbyParking from './components/NearbyParking.jsx';
 import { availableSpaces } from './utils/parkingLogic.js';
 
@@ -22,12 +21,11 @@ export default function App() {
   const reporting = decks.filter(d => availableSpaces(d) !== null).length;
 
   const chosenDeck = decks.find(deck => deck.id === selectedDeckId);
-  const tabs = [['drivers', 'Find parking'], ['nearby', 'Nearby parking'], ['staff', 'PATS staff']];
+  const tabs = [['drivers', 'Find parking'], ['nearby', 'Nearby parking']];
   const chooseDeck = id => { setSelectedDeckId(id); setView('drivers'); window.scrollTo({top:0,behavior:'smooth'}); };
   return <><Header/><main className="page">
     <nav className="view-tabs" aria-label="Views">{tabs.map(([id, label]) => <button key={id} type="button" className="level-tab" aria-pressed={view === id} onClick={() => setView(id)}>{label}</button>)}</nav>
-    {view === 'staff' ? <StaffDashboard decks={decks} lastRefresh={lastRefresh} error={error}/>
-    : view === 'nearby' ? (error ? <EmptyState message={error}/> : <NearbyParking decks={decks} onChoose={chooseDeck}/>) : <>
+    {view === 'nearby' ? (error ? <EmptyState message={error}/> : <NearbyParking decks={decks} onChoose={chooseDeck}/>) : <>
     {selectedDeckId && <ParkingFlow deck={chosenDeck} onBack={() => setSelectedDeckId(null)} />}
     <div className="intro"><p className="eyebrow"></p><h1>Find your next parking spot.</h1><p className="intro-copy">Compare real-time available parking at campus decks.</p></div>
     {/*<div className="intro"><p className="eyebrow">SPRINT 1 · PARKING OVERVIEW</p><h1>Find your next parking spot.</h1><p className="intro-copy">Compare available parking at campus decks before you leave. This is a demonstration using simulated occupancy.</p></div>*/}
