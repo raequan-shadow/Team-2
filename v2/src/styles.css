@@ -14,3 +14,21 @@
 .level-tab[aria-pressed="true"]{background:#10253b;border-color:#10253b;color:#fff}
 .spot-row{grid-template-columns:repeat(4,minmax(0,1fr))}
 .flow-card .unavailable-note{margin:12px 0}
+
+/* Issue #3: view tabs and PATS staff dashboard */
+.view-tabs{display:flex;gap:8px;margin:0 0 24px}
+.staff-signin{max-width:380px}
+.staff-signin h2{margin-top:0}
+.staff-signin .search-field input{padding:12px 0}
+.staff-overview{margin:22px 0}
+.table-wrap{overflow-x:auto}
+.staff-table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
+.staff-table th,.staff-table td{text-align:left;padding:11px 10px;border-bottom:1px solid #e7ebee}
+.staff-table thead th{font-size:11px;color:#647286;font-weight:700}
+.row-warning{background:#fff8ec}
+.sensor{font-weight:800;font-size:12px}
+.sensor-online{color:#13794e}
+.sensor-stale{color:#9b6b0a}
+.sensor-offline{color:#b53333}
+.outdated{color:#9b6b0a;font-size:11px}
+.staff-signout{max-width:160px}
