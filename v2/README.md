@@ -116,7 +116,7 @@ The first command runs the project's configured automated tests; the second chec
 
 Team members start from the shared working prototype, create their **own branches**, make meaningful incremental commits, and test locally. When a contribution is ready, its author pushes their branch and opens a pull request targeting the agreed integration branch. Teammates review and test before merging.
 
-Our repository currently has an unconventional branch setup: the working prototype is on `live_parking_jaz`, while `feature/live-parking-availability` has been used as the default branch. **Confirm the pull request's base and compare branches before merging.** Do not assume the default branch automatically contains the latest prototype.
+Our repository currently has an unconventional branch setup: the working prototype is on `live_parking_jaz`, while `feature/live-parking-availability` has been used as the default branch. 
 
 
 ## AI-assisted development and design reference
