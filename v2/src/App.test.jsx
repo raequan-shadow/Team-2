@@ -5,9 +5,12 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import App from './App.jsx';
 
 import csv from '../public/data/parking.csv?raw';
+import spotsCsv from '../public/data/spots.csv?raw';
 
 function mockFetch(ok = true, body = csv) {
-  globalThis.fetch = vi.fn(() => Promise.resolve({ ok, text: () => Promise.resolve(body) }));
+  globalThis.fetch = vi.fn(url => Promise.resolve(url.includes('spots')
+    ? { ok: true, text: () => Promise.resolve(spotsCsv) }
+    : { ok, text: () => Promise.resolve(body) }));
 }
 
 const cards = () => screen.getAllByRole('heading', { level: 3 }).map(h => h.textContent);
@@ -105,16 +108,16 @@ test('full driver flow: choose deck, pick spot, tap in, tap out, back to list', 
   expect(flow().getByText('255 spaces reported available across this deck.')).toBeTruthy();
   expect(flow().getByRole('button', { name: /Continue with a spot/ }).disabled).toBe(true);
 
-  const taken = flow().getAllByRole('button').find(b => b.textContent.includes('TAKEN'));
+  const taken = await flow().findByRole('button', { name: /1A-01/ });
   expect(taken.disabled).toBe(true);
 
-  await user.click(flow().getByRole('button', { name: /A6/ }));
-  expect(flow().getByText('✓ You selected A6')).toBeTruthy();
-  await user.click(flow().getByRole('button', { name: /Continue with A6/ }));
+  await user.click(flow().getByRole('button', { name: /1A-02/ }));
+  expect(flow().getByText('✓ You selected 1A-02')).toBeTruthy();
+  await user.click(flow().getByRole('button', { name: /Continue with 1A-02/ }));
 
-  expect(flow().getByText('Spot A6 is shown as free')).toBeTruthy();
+  expect(flow().getByText('Spot 1A-02 is shown as free')).toBeTruthy();
   await user.click(flow().getByRole('button', { name: /Not here/ }));
-  await user.click(flow().getByRole('button', { name: /Continue with A6/ }));
+  await user.click(flow().getByRole('button', { name: /Continue with 1A-02/ }));
 
   await user.click(flow().getByRole('button', { name: /Tap in/ }));
   expect(flow().getByText("✓ You're parked (demo)")).toBeTruthy();
