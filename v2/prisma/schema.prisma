@@ -1,0 +1,105 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SpaceStatus {
+  AVAILABLE
+  OCCUPIED
+  UNKNOWN
+  OUT_OF_SERVICE
+}
+
+enum SensorStatus {
+  ONLINE
+  STALE
+  OFFLINE
+  UNKNOWN
+}
+
+model ParkingDeck {
+  id            String             @id @default(uuid()) @db.Uuid
+  code          String             @unique
+  name          String
+  locationLabel String             @map("location_label")
+  totalCapacity Int                @map("total_capacity")
+  latitude      Decimal?           @db.Decimal(9, 6)
+  longitude     Decimal?           @db.Decimal(9, 6)
+  isActive      Boolean            @default(true) @map("is_active")
+  floors        ParkingFloor[]
+  sensors       Sensor[]
+  readings      OccupancyReading[]
+
+  @@map("parking_decks")
+}
+
+model ParkingFloor {
+  id          String         @id @default(uuid()) @db.Uuid
+  deckId      String         @map("deck_id") @db.Uuid
+  floorNumber Int            @map("floor_number")
+  label       String?
+  deck        ParkingDeck    @relation(fields: [deckId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  spaces      ParkingSpace[]
+
+  @@unique([deckId, floorNumber])
+  @@map("parking_floors")
+}
+
+model ParkingSpace {
+  id              String       @id @default(uuid()) @db.Uuid
+  floorId         String       @map("floor_id") @db.Uuid
+  code            String
+  section         String?
+  status          SpaceStatus  @default(UNKNOWN)
+  statusUpdatedAt DateTime?    @map("status_updated_at") @db.Timestamptz(3)
+  floor           ParkingFloor @relation(fields: [floorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([floorId, code])
+  @@index([status])
+  @@map("parking_spaces")
+}
+
+model Sensor {
+  id         String             @id @default(uuid()) @db.Uuid
+  code       String             @unique
+  deckId     String             @map("deck_id") @db.Uuid
+  type       String
+  status     SensorStatus       @default(UNKNOWN)
+  lastSeenAt DateTime?          @map("last_seen_at") @db.Timestamptz(3)
+  deck       ParkingDeck        @relation(fields: [deckId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  readings   OccupancyReading[]
+
+  @@unique([id, deckId])
+  @@map("sensors")
+}
+
+model OccupancyReading {
+  id            String      @id @default(uuid()) @db.Uuid
+  deckId        String      @map("deck_id") @db.Uuid
+  sensorId      String?     @map("sensor_id") @db.Uuid
+  occupiedCount Int?        @map("occupied_count")
+  observedAt    DateTime    @map("observed_at") @db.Timestamptz(3)
+  receivedAt    DateTime    @default(now()) @map("received_at") @db.Timestamptz(3)
+  deck          ParkingDeck @relation(fields: [deckId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  sensor        Sensor?     @relation(fields: [sensorId, deckId], references: [id, deckId], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([deckId, observedAt(sort: Desc)])
+  @@index([sensorId, observedAt(sort: Desc)])
+  @@map("occupancy_readings")
+}
+
+model CampusBuilding {
+  id        String  @id @default(uuid()) @db.Uuid
+  code      String  @unique
+  name      String
+  latitude  Decimal @db.Decimal(9, 6)
+  longitude Decimal @db.Decimal(9, 6)
+  isActive  Boolean @default(true) @map("is_active")
+
+  @@map("campus_buildings")
+}
