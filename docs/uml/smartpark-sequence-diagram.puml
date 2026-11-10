@@ -1,0 +1,56 @@
+@startuml
+title SmartPark - View Live Parking Availability (Issue #1)
+autonumber
+
+actor Student
+participant "SmartPark React\ninterface" as React
+participant "Backend application\nservice / API" as API
+participant "Prisma ORM /\ndata-access layer" as Prisma
+database PostgreSQL as DB
+collections "Static CSV\n(prototype only)" as CSV
+
+group Proposed database-backed flow - target architecture, not yet implemented
+  Student -> React: Open parking availability
+  React -> API: GET /api/parking/decks
+  activate API
+  API -> Prisma: Query active decks and latest occupancy reading per deck
+  activate Prisma
+  Prisma -> DB: SELECT decks and latest readings\nordered by observedAt DESC
+  activate DB
+  DB --> Prisma: Deck capacity and latest reading\n(count may be NULL)
+  deactivate DB
+  Prisma --> API: Decks with latest reading data
+  deactivate Prisma
+  API -> API: Derive available = capacity - occupied\nwhen count exists and is current
+  API -> API: Mark missing, NULL, or stale readings unavailable
+  API --> React: 200 JSON: decks, capacity,\navailable or unavailable, status, updatedAt
+  deactivate API
+  React --> Student: Display availability and freshness\nwithout manual page refresh
+
+  loop Refresh every 30-60 seconds (Issue #1)
+    React -> API: GET /api/parking/decks
+    API -> Prisma: Read latest deck occupancy
+    Prisma -> DB: SELECT latest readings
+    DB --> Prisma: Current stored readings
+    Prisma --> API: Decks and readings
+    API --> React: Recalculated availability response
+    React --> Student: Refresh displayed counts/status
+  end
+end
+
+group Existing v2 prototype - CSV-based, no backend/database access
+  Student -> React: Open availability page
+  React -> CSV: fetch /data/parking.csv
+  CSV --> React: Static demo deck rows
+  React -> React: Parse CSV and calculate availability
+  React --> Student: Display simulated availability
+  loop Every 30 seconds while page is open
+    React -> React: Randomly simulate occupancy changes
+    React --> Student: Update browser-only counts
+  end
+  note over React, DB
+    The current prototype does not call the API or Prisma,
+    query PostgreSQL, or persist the simulated updates.
+  end note
+end
+@enduml
