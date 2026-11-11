@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "db:validate": "prisma validate",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "db:seed": "prisma db seed",
+    "db:verify": "tsx prisma/verify.js"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",
