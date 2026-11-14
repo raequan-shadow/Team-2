@@ -117,3 +117,8 @@ local environment configuration is protected:
 - git ls-files .env
 
 The .env file was confirmed to be ignored and untracked.
+
+## 9. Related Configuration Files
+- [.gitignore](../.gitignore)
+- [.env.example](../.env.example)
+    
