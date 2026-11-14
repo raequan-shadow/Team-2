@@ -74,7 +74,7 @@ backend and database connectivity:
 | jayasmitadatta | Retrieve parking deck records | Pass |
 | jayasmitadatta | Retrieve parking spot records | Pass |
 | jayasmitadatta | Verify .env is ignored and untracked | Pass |
-| raequan-shadow | Local database verification | Pending confirmation |
+| raequan-shadow | Local database verification | Pass |
 | ChinnyIgwuilo | Local database verification | Pending confirmation |
 | sanskritithapak5-code | Local database verification | Pending confirmation |
 | KrishKPs | Local database verification | Pending confirmation |
