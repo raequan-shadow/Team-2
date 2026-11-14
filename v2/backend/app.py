@@ -1,7 +1,10 @@
+from config import DATABASE_PATH
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import sqlite3
-from pathlib import Path
+
+#from pathlib import Path
+
 
 app = Flask(__name__)
 
@@ -10,8 +13,8 @@ CORS(app, origins=[
     "http://127.0.0.1:5173"
 ])
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATABASE_PATH = BASE_DIR / "database" / "smartpark.db"
+#BASE_DIR = Path(__file__).resolve().parent.parent
+#DATABASE_PATH = BASE_DIR / "database" / "smartpark.db"
 
 
 def get_db_connection():
