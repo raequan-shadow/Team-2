@@ -1,2 +1,6 @@
-
-v2/database/*.db
+node_modules/
+dist/
+.env
+*.db
+*.sqlite
+*.sqlite3
