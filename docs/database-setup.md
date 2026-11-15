@@ -79,13 +79,38 @@ backend and database connectivity:
 | sanskritithapak5-code | Local database verification | Pending confirmation |
 | KrishKPs | Local database verification | Pending confirmation |
 
-## 6. Credential Security
+## 6. Database Security Verification 
 
-- Local environment files must not be committed.
-- The .env.example file must contain only placeholders.
-- Local SQLite database files should not be committed.
-- Database initialization scripts must remain tracked.
-- Private credentials must not appear in documentation.
+### Security Measures Implemented
+
+- Updated the root `.gitignore` to protect environment files, private keys, and local SQLite database files.
+- Excluded Python virtual environments, generated files, and frontend dependencies.
+- Maintained a local `.env` file for database configuration.
+- Updated `.env.example` with a safe SQLite database configuration template.
+- Kept database initialization scripts available so each team member can reproduce the database locally.
+
+### Security Verification Results
+
+| Verification Command | Result |
+|---|---|
+| `git status` | Repository status inspected |
+| `git check-ignore -v .env` | Successfully ignored |
+| `git ls-files .env` | No output — file is not tracked |
+| `git check-ignore -v .env.local .env.development test.pem test.key` | Security rules successfully verified |
+| `git diff --cached --name-only` | Only intended files staged |
+| `git show 1459d42` | Security commit inspected |
+
+### Database Credential Protection
+
+SmartPark uses Flask and SQLite. SQLite does not require a database username or password for our local implementation. The database path is configured through the `DB_PATH` environment variable.
+
+The `.env.example` file is shared with the team, while the actual `.env` file remains local.
+
+### GitHub Commit
+
+- Commit ID: `1459d42`
+- Commit message: Strengthen database security and protect sensitive configuration files
+- Status: Successfully pushed to GitHub
 
 ## 7. Environment Configuration
 
@@ -107,18 +132,8 @@ Relative database paths are resolved from the v2 folder.
 
 The .env file is ignored by Git and must not be committed.
 
-## 8. Security Verification
 
-The following commands were executed to verify that
-local environment configuration is protected:
-
-- git status
-- git check-ignore -v .env
-- git ls-files .env
-
-The .env file was confirmed to be ignored and untracked.
-
-## 9. Related Configuration Files
+## 8. Related Configuration Files
 - [.gitignore](../.gitignore)
 - [.env.example](../.env.example)
     
