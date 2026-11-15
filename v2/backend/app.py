@@ -17,15 +17,58 @@ CORS(app, origins=[
 #DATABASE_PATH = BASE_DIR / "database" / "smartpark.db"
 
 
+#def get_db_connection():
+    #connection = sqlite3.connect(DATABASE_PATH)
+    #connection.row_factory = sqlite3.Row
+    #return connection
+
 def get_db_connection():
-    connection = sqlite3.connect(DATABASE_PATH)
+    # Connect to an existing database without creating a new one
+    connection = sqlite3.connect(
+        DATABASE_PATH.as_uri() + "?mode=rw",
+        uri=True
+    )
     connection.row_factory = sqlite3.Row
     return connection
 
+# Handle database errors across the API
+@app.errorhandler(sqlite3.Error)
+def handle_database_error(error):
+    app.logger.error("Database error: %s", error)
+
+    return jsonify({
+        "error": "Database unavailable",
+        "message": "Unable to access parking data."
+    }), 503
+
+
+#@app.route("/api/health", methods=["GET"])
+#def health():
+    #return jsonify({"message": "SmartPark API is running!"})
 
 @app.route("/api/health", methods=["GET"])
+
 def health():
-    return jsonify({"message": "SmartPark API is running!"})
+    connection = get_db_connection()
+
+    try:
+        # Verify that both required database tables are accessible
+        connection.execute(
+            "SELECT 1 FROM parking_decks LIMIT 1"
+        ).fetchone()
+
+        connection.execute(
+            "SELECT 1 FROM parking_spots LIMIT 1"
+        ).fetchone()
+
+        return jsonify({
+            "message": "SmartPark API is running!",
+            "database": "connected",
+            "status": "healthy"
+        }), 200
+
+    finally:
+        connection.close()
 
 
 @app.route("/api/decks", methods=["GET"])
