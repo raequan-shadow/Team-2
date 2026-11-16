@@ -122,6 +122,30 @@ describe('selected spot becomes unavailable', () => {
     expect(screen.queryByText('Spot 1A-02 is shown as free')).toBeNull();
     expect(screen.getByText('Oops! Spot 1A-02 is unavailable.')).toBeTruthy();
   });
+
+  test('picking an alternative goes straight to confirm with that spot and level', async () => {
+    await selectThenTake();
+    await act(async () => screen.getByRole('button', { name: /2B-01/ }).click());
+    expect(screen.getByText('Spot 2B-01 is shown as free')).toBeTruthy();
+    expect(screen.getByText('Main Deck · Level 2', { selector: 'span' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Tap in/ }).disabled).toBe(false);
+  });
+
+  test('"Choose another spot manually" returns to the picker with nothing selected', async () => {
+    await selectThenTake();
+    await act(async () => screen.getByRole('button', { name: 'Choose another spot manually' }).click());
+    expect(screen.getByText('Choose an available spot')).toBeTruthy();
+    expect(screen.getByText('Select a green spot below')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Continue with a spot/ }).disabled).toBe(true);
+  });
+
+  test('says so when no other spot in the deck is free', async () => {
+    const oneFree = 'deckId,level,section,spotId,occupied\nD01,1,A,1A-02,false\n';
+    globalThis.fetch = vi.fn(() => Promise.resolve({ ok: true, text: () => Promise.resolve(oneFree) }));
+    await selectThenTake();
+    expect(screen.getByText('Oops! Spot 1A-02 is unavailable.')).toBeTruthy();
+    expect(screen.getByText(/there are no other available\s+spots in this deck/)).toBeTruthy();
+  });
 });
 
 describe('session flow', () => {
