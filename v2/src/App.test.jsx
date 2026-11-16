@@ -4,13 +4,21 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import App from './App.jsx';
 
-import csv from '../public/data/parking.csv?raw';
 import spotsCsv from '../public/data/spots.csv?raw';
 
-function mockFetch(ok = true, body = csv) {
+const apiDecks = [
+  { id: 'D01', name: 'Main Deck', location: 'Main campus', totalCapacity: 300, occupiedSpaces: 45, availableSpaces: 255, occupancy: 15, status: 'Green', lastUpdated: '2026-11-15T20:00:00-05:00', isDataAvailable: true, dataType: 'database', sensorStatus: 'online' },
+  { id: 'D02', name: 'Union Deck', location: 'Near Student Union', totalCapacity: 1200, occupiedSpaces: 1180, availableSpaces: 20, occupancy: 98.33, status: 'Red', lastUpdated: '2026-11-15T20:00:00-05:00', isDataAvailable: true, dataType: 'database', sensorStatus: 'online' },
+  { id: 'D03', name: 'East Deck 2', location: 'East campus area', totalCapacity: 650, occupiedSpaces: 560, availableSpaces: 90, occupancy: 86.15, status: 'Yellow', lastUpdated: '2026-11-15T20:00:00-05:00', isDataAvailable: true, dataType: 'database', sensorStatus: 'online' },
+  { id: 'D04', name: 'North Deck', location: 'North campus area', totalCapacity: 600, occupiedSpaces: 40, availableSpaces: 560, occupancy: 6.67, status: 'Green', lastUpdated: '2026-11-15T20:00:00-05:00', isDataAvailable: true, dataType: 'database', sensorStatus: 'online' },
+  { id: 'D05', name: 'South Village Deck', location: 'South Village area', totalCapacity: 800, occupiedSpaces: 560, availableSpaces: 240, occupancy: 70, status: 'Green', lastUpdated: '2026-11-15T20:00:00-05:00', isDataAvailable: true, dataType: 'database', sensorStatus: 'online' },
+  { id: 'D06', name: 'West Deck', location: 'West campus area', totalCapacity: 400, occupiedSpaces: 392, availableSpaces: 8, occupancy: 98, status: 'Red', lastUpdated: '2026-11-15T20:00:00-05:00', isDataAvailable: true, dataType: 'database', sensorStatus: 'stale' },
+];
+
+function mockFetch(ok = true, body = apiDecks) {
   globalThis.fetch = vi.fn(url => Promise.resolve(url.includes('spots')
     ? { ok: true, text: () => Promise.resolve(spotsCsv) }
-    : { ok, text: () => Promise.resolve(body) }));
+    : { ok, json: () => Promise.resolve(body) }));
 }
 
 const cards = () => screen.getAllByRole('heading', { level: 3 }).map(h => h.textContent);
@@ -33,7 +41,7 @@ test('shows every deck with capacity, available spaces and totals', async () => 
   expect(within(card('East Deck 2')).getByText('Limited spaces')).toBeTruthy();
   expect(screen.getByText('1,173')).toBeTruthy(); // 255+20+90+560+240+8
   expect(screen.getByText('6/6')).toBeTruthy();
-  expect(fetch).toHaveBeenCalledWith('/data/parking.csv');
+  expect(fetch).toHaveBeenCalledWith('http://127.0.0.1:5000/api/decks');
 });
 
 test('search filters by name or location, and clearing restores the list', async () => {
@@ -79,7 +87,17 @@ test('failed CSV load shows an error, not numbers', async () => {
 });
 
 test('deck with no occupancy data shows the unavailable message', async () => {
-  mockFetch(true, 'id,name,location,totalCapacity,occupiedSpaces,isDataAvailable\nD9,Ghost Deck,Nowhere,500,,false');
+  mockFetch(true, [{
+    id: 'D9',
+    name: 'Ghost Deck',
+    location: 'Nowhere',
+    totalCapacity: 500,
+    occupiedSpaces: null,
+    availableSpaces: null,
+    isDataAvailable: false,
+    lastUpdated: '2026-11-15T20:00:00-05:00',
+    sensorStatus: 'offline',
+  }]);
   render(<App />);
   await screen.findByText('Ghost Deck');
   expect(screen.getByText('Occupancy data is currently unavailable.')).toBeTruthy();
@@ -91,6 +109,7 @@ test('occupancy refreshes automatically every 30 seconds', async () => {
   vi.spyOn(Math, 'random').mockReturnValue(0); // every deck loses 10 cars
   render(<App />);
   await screen.findByText('Main Deck');
+  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
   expect(within(card('Main Deck')).getByText('255')).toBeTruthy();
 
   await act(() => vi.advanceTimersByTime(30000));

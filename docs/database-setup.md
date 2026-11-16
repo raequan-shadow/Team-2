@@ -14,33 +14,38 @@ the same database initialization script.
 - Frontend: React
 - Backend: Python Flask
 - Database: SQLite
-- Database access: Python sqlite3
+- ORM and database access: SQLAlchemy 2.1
 
 ## 3. Local Database Setup
 
 ### Install backend dependencies
 
-From the root of the repository, run:
+From the repository root, install the backend dependencies:
 
 ```bash
 cd v2/backend
-python3 -m pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 ### Initialize the database
 
 ```bash
-python3 init_db.py
+python init_db.py
 ```
 
-The expected database location is:
+The initializer uses SQLAlchemy models and the configured `DATABASE_PATH`.
+By default, `DB_PATH=./database/smartpark.db` resolves to:
 
 `v2/database/smartpark.db`
+
+It creates missing `parking_decks` and `parking_spots` tables and imports the
+CSV fixtures with SQLite upserts. Re-running it updates matching rows; it does
+not drop or recreate the database.
 
 ### Start the backend
 
 ```bash
-python3 app.py
+python app.py
 ```
 
 The backend runs at http://127.0.0.1:5000.
@@ -55,6 +60,10 @@ npm install
 npm run dev
 ```
 
+The React availability hook requests
+`http://127.0.0.1:5000/api/decks`. Flask CORS allows the Vite origins
+`http://127.0.0.1:5173` and `http://localhost:5173`.
+
 ## 4. Database Connectivity Verification
 
 The following API endpoints can be used to verify
@@ -65,6 +74,15 @@ backend and database connectivity:
 | /api/health | Verify backend status |
 | /api/decks | Retrieve parking deck records |
 | /api/spots | Retrieve individual parking spot records |
+
+`GET /api/decks` queries `ParkingDeck` rows through SQLAlchemy, ordered by
+`id`, and returns JSON used by the React availability hook. The hook maps the
+response fields into the existing deck view model. `GET /api/spots` separately
+queries individual spaces.
+
+The database is seeded from demo CSV data. The frontend retains its existing
+local 30-second occupancy simulation; the timer does not poll the API or turn
+the fixture data into a live sensor feed.
 
 ## 5. Team Database Verification
 

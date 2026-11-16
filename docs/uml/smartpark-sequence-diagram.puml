@@ -1,0 +1,41 @@
+@startuml
+title SmartPark - View Parking Availability
+autonumber
+
+actor Student
+participant "React frontend\n(App / useParkingAvailability)" as React
+participant "Flask API\nGET /api/decks" as Flask
+participant "SQLAlchemy ORM\n(SessionLocal)" as ORM
+database "SQLite\n(DATABASE_PATH)" as DB
+
+Student -> React: Open parking availability
+activate React
+React -> Flask: GET http://127.0.0.1:5000/api/decks
+note over React,Flask
+  Browser request from Vite's http://127.0.0.1:5173 origin;
+  Flask CORS allows this origin.
+end note
+activate Flask
+Flask -> ORM: Open SessionLocal; select ParkingDeck\nordered by id
+activate ORM
+ORM -> DB: SELECT mapped parking_decks columns\nFROM parking_decks ORDER BY id
+activate DB
+DB --> ORM: Ordered persisted deck rows
+deactivate DB
+ORM --> Flask: ParkingDeck objects
+deactivate ORM
+Flask -> Flask: Map columns to JSON keys;\nset occupiedSpaces to null if data unavailable
+Flask --> React: 200 JSON array of decks
+deactivate Flask
+React -> React: Map API JSON to UI deck shape;\nset decks and lastRefresh
+React --> Student: Render deck cards, availability,\nand update time
+deactivate React
+
+note over React
+  The hook fetches the API once on mount.
+  Its existing 30-second timer simulates occupancy
+  changes locally; it does not re-fetch SQLite data.
+  Database rows are initialized/upserted from demo CSVs,
+  not supplied by a live sensor feed.
+end note
+@enduml
