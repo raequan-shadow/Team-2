@@ -77,7 +77,7 @@ backend and database connectivity:
 | raequan-shadow | Local database verification | Pass |
 | ChinnyIgwuilo | Local database verification | Pending confirmation |
 | sanskritithapak5-code | Local database verification | Pending confirmation |
-| KrishKPs | Local database verification | Pending confirmation |
+| KrishKPs | Local database verification | Pass |
 
 ## 6. Database Security Verification 
 
