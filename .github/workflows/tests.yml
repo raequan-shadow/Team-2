@@ -1,0 +1,32 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # jsdom 31 needs Node 22.22+ or 24.15+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Run v1 tests
+        working-directory: v1
+        run: npm test
+
+      - name: Install v2 dependencies
+        working-directory: v2
+        run: npm ci
+
+      - name: Run v2 tests
+        working-directory: v2
+        run: npm test
+
+      - name: Build v2
+        working-directory: v2
+        run: npm run build
