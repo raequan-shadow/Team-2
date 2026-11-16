@@ -117,6 +117,8 @@ test('full driver flow: choose deck, pick spot, tap in, tap out, back to list', 
 
   expect(flow().getByText('Spot 1A-02 is shown as free')).toBeTruthy();
   await user.click(flow().getByRole('button', { name: /Not here/ }));
+  expect(flow().getByRole('button', { name: /Continue with a spot/ }).disabled).toBe(true);
+  await user.click(flow().getByRole('button', { name: /1A-02/ }));
   await user.click(flow().getByRole('button', { name: /Continue with 1A-02/ }));
 
   await user.click(flow().getByRole('button', { name: /Tap in/ }));

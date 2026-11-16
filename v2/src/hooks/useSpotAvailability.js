@@ -14,11 +14,13 @@ export function useSpotAvailability() {
     return () => { cancelled = true; };
   }, []);
 
+  // Restart the timer only when spots finish loading, not on every simulated update.
+  const loaded = Boolean(spots);
   useEffect(() => {
-    if (!spots) return;
+    if (!loaded) return;
     const timer = setInterval(() => setSpots(current => simulateSpots(current)), 30000);
     return () => clearInterval(timer);
-  }, [!spots]);
+  }, [loaded]);
 
   return spots;
 }

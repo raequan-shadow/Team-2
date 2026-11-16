@@ -332,11 +332,6 @@ export default function ParkingFlow({ deck, onBack }) {
               className="primary-action"
               disabled={!ready}
               onClick={() => {
-                if (!ready) {
-                  setStep('unavailable');
-                  return;
-                }
-
                 setStartedAt(new Date());
                 setStep('parked');
               }}
