@@ -94,15 +94,33 @@ describe('spots by level and section', () => {
     expect(freeSpots()).toEqual(['1A-01', '1A-03', '1B-02', '1B-03']);
   });
 
-  test('if the selected spot gets taken, it can no longer be continued with', async () => {
+});
+
+describe('selected spot becomes unavailable', () => {
+  const alternativeIds = () => screen.getAllByRole('button', { name: /SELECT · LEVEL/ }).map(b => b.textContent.slice(0, 5));
+
+  // Selects 1A-02 (optionally continuing to confirm), then flips every spot so 1A-02 becomes taken.
+  async function selectThenTake({ confirm = false } = {}) {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     await act(async () => { render(<ParkingFlow deck={deck} onBack={() => {}} />); await new Promise(r => setTimeout(r, 0)); });
     await act(async () => screen.getByRole('button', { name: /1A-02/ }).click());
     expect(screen.getByText('✓ You selected 1A-02')).toBeTruthy();
+    if (confirm) await act(async () => screen.getByRole('button', { name: /Continue with 1A-02/ }).click());
     vi.spyOn(Math, 'random').mockReturnValue(0);
     await act(() => vi.advanceTimersByTime(30000));
-    expect(screen.getByText('Select a green spot below')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Continue with 1A-02/ }).disabled).toBe(true);
+  }
+
+  test('while choosing, shows the unavailable screen with same-floor alternatives first', async () => {
+    await selectThenTake();
+    expect(screen.getByText('Oops! Spot 1A-02 is unavailable.')).toBeTruthy();
+    expect(screen.getByText('Available alternative spots')).toBeTruthy();
+    expect(alternativeIds()).toEqual(['1A-01', '1A-03', '1B-02', '1B-03', '2B-01', '2B-04']);
+  });
+
+  test('while confirming, also moves to the unavailable screen', async () => {
+    await selectThenTake({ confirm: true });
+    expect(screen.queryByText('Spot 1A-02 is shown as free')).toBeNull();
+    expect(screen.getByText('Oops! Spot 1A-02 is unavailable.')).toBeTruthy();
   });
 });
 
