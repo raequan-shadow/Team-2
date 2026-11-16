@@ -1,14 +1,15 @@
 
 import csv
 import sqlite3
-from pathlib import Path
+from config import BASE_DIR, DATABASE_DIR, DATABASE_PATH
+#from pathlib import Path
 
 # Find the v2 project folder
-BASE_DIR = Path(__file__).resolve().parent.parent
+#BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Database and CSV file locations
-DATABASE_DIR = BASE_DIR / "database"
-DATABASE_PATH = DATABASE_DIR / "smartpark.db"
+#DATABASE_DIR = BASE_DIR / "database"
+#DATABASE_PATH = DATABASE_DIR / "smartpark.db"
 
 PARKING_CSV = BASE_DIR / "public" / "data" / "parking.csv"
 SPOTS_CSV = BASE_DIR / "public" / "data" / "spots.csv"
