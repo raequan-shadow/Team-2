@@ -1,5 +1,23 @@
 import { useEffect, useState } from 'react';
-import { parseParkingCsv, simulateOccupancy } from '../utils/parkingLogic.js';
+import { simulateOccupancy } from '../utils/parkingLogic.js';
+
+const DECKS_API_URL = 'http://127.0.0.1:5000/api/decks';
+
+function mapDecksResponse(decks) {
+  return decks.map(deck => {
+    const hasOccupancy = deck.isDataAvailable && deck.occupiedSpaces !== null;
+    return {
+      id: deck.id,
+      name: deck.name,
+      location: deck.location,
+      totalCapacity: Number(deck.totalCapacity),
+      occupiedSpaces: hasOccupancy ? Number(deck.occupiedSpaces) : null,
+      isDataAvailable: hasOccupancy,
+      lastUpdated: deck.lastUpdated,
+      sensorStatus: deck.sensorStatus || 'online',
+    };
+  });
+}
 
 export function useParkingAvailability() {
   const [decks, setDecks] = useState([]);
@@ -9,9 +27,9 @@ export function useParkingAvailability() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/data/parking.csv')
-      .then(res => { if (!res.ok) throw new Error('CSV could not be loaded'); return res.text(); })
-      .then(csv => { if (!cancelled) { setDecks(parseParkingCsv(csv)); setLastRefresh(new Date()); } })
+    fetch(DECKS_API_URL)
+      .then(res => { if (!res.ok) throw new Error('Parking API could not be loaded'); return res.json(); })
+      .then(data => { if (!cancelled) { setDecks(mapDecksResponse(data)); setLastRefresh(new Date()); } })
       .catch(() => { if (!cancelled) setError('Parking data is temporarily unavailable. Please try again later.'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };

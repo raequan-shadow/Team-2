@@ -20,7 +20,7 @@ describe('shipped parking.csv', () => {
   });
 
   test('handles Windows line endings', () => {
-    expect(parseParkingCsv(csv.replace(/\n/g, '\r\n'))).toEqual(decks);
+    expect(parseParkingCsv(csv.replace(/\r?\n/g, '\r\n'))).toEqual(decks);
   });
 });
 
