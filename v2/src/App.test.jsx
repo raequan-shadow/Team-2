@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import App from './App.jsx';
 
 import spotsCsv from '../public/data/spots.csv?raw';
+import { jsonResponse, spotsApiFromCsv } from './testUtils.js';
 
 const apiDecks = [
   { id: 'D01', name: 'Main Deck', location: 'Main campus', totalCapacity: 300, occupiedSpaces: 45, availableSpaces: 255, occupancy: 15, status: 'Green', lastUpdated: '2026-11-15T20:00:00-05:00', isDataAvailable: true, dataType: 'database', sensorStatus: 'online' },
@@ -17,8 +18,8 @@ const apiDecks = [
 
 function mockFetch(ok = true, body = apiDecks) {
   globalThis.fetch = vi.fn(url => Promise.resolve(url.includes('spots')
-    ? { ok: true, text: () => Promise.resolve(spotsCsv) }
-    : { ok, json: () => Promise.resolve(body) }));
+    ? jsonResponse(spotsApiFromCsv(spotsCsv))
+    : jsonResponse(body, ok)));
 }
 
 const cards = () => screen.getAllByRole('heading', { level: 3 }).map(h => h.textContent);
@@ -41,7 +42,7 @@ test('shows every deck with capacity, available spaces and totals', async () => 
   expect(within(card('East Deck 2')).getByText('Limited spaces')).toBeTruthy();
   expect(screen.getByText('1,173')).toBeTruthy(); // 255+20+90+560+240+8
   expect(screen.getByText('6/6')).toBeTruthy();
-  expect(fetch).toHaveBeenCalledWith('http://127.0.0.1:5000/api/decks');
+  expect(fetch).toHaveBeenCalledWith('http://127.0.0.1:5000/api/decks', expect.objectContaining({ cache: 'no-store' }));
 });
 
 test('search filters by name or location, and clearing restores the list', async () => {
@@ -104,17 +105,33 @@ test('deck with no occupancy data shows the unavailable message', async () => {
   expect(screen.getByText('0/1')).toBeTruthy();
 });
 
-test('occupancy refreshes automatically every 30 seconds', async () => {
+test('occupancy refreshes from the backend every 30 seconds', async () => {
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
-  vi.spyOn(Math, 'random').mockReturnValue(0); // every deck loses 10 cars
   render(<App />);
   await screen.findByText('Main Deck');
   await act(() => new Promise(resolve => setTimeout(resolve, 0)));
   expect(within(card('Main Deck')).getByText('255')).toBeTruthy();
 
-  await act(() => vi.advanceTimersByTime(30000));
-  expect(within(card('Main Deck')).getByText('265')).toBeTruthy();
-  vi.restoreAllMocks();
+  // Another session parked 10 cars; the database now reports 55 occupied.
+  mockFetch(true, apiDecks.map(d => d.id === 'D01' ? { ...d, occupiedSpaces: 55 } : d));
+  await act(async () => { vi.advanceTimersByTime(30000); await new Promise(r => setTimeout(r, 0)); });
+  expect(within(card('Main Deck')).getByText('245')).toBeTruthy();
+});
+
+test('a failed refresh keeps the last data and warns that it may be out of date', async () => {
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+  render(<App />);
+  await screen.findByText('Main Deck');
+  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+
+  globalThis.fetch = vi.fn(() => Promise.reject(new Error('offline')));
+  await act(async () => { vi.advanceTimersByTime(30000); await new Promise(r => setTimeout(r, 0)); });
+  expect(within(card('Main Deck')).getByText('255')).toBeTruthy();
+  expect(screen.getByText(/couldn.t reach the parking server/i)).toBeTruthy();
+
+  mockFetch();
+  await act(async () => { vi.advanceTimersByTime(30000); await new Promise(r => setTimeout(r, 0)); });
+  expect(screen.queryByText(/couldn.t reach the parking server/i)).toBeNull();
 });
 
 test('full driver flow: choose deck, pick spot, tap in, tap out, back to list', async () => {

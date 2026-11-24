@@ -49,3 +49,4 @@
 .map-deck:focus{outline:none}
 .map-deck:focus circle{stroke:#10253b;stroke-width:3}
 @media(max-width:700px){.nearby-list{grid-template-columns:1fr}}
+.stale-note{margin:16px 0 0}
