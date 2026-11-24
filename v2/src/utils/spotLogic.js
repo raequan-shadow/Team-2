@@ -1,4 +1,4 @@
-// Simulated per-spot occupancy. Only decks listed in spots.csv have individual-space data.
+// Parses spots.csv (the seed data the backend imports). Only decks listed there have individual-space data.
 export function parseSpotsCsv(csv) {
   const [header, ...rows] = csv.trim().split(/\r?\n/);
   const keys = header.split(',');
@@ -15,9 +15,4 @@ export function spotsByLevel(spots, deckId) {
     ((levels[spot.level] ??= {})[spot.section] ??= []).push(spot);
   }
   return levels;
-}
-
-// Each tick a few spots flip, like cars arriving or leaving.
-export function simulateSpots(spots, random = Math.random) {
-  return spots.map(spot => (random() < 0.1 ? { ...spot, occupied: !spot.occupied } : spot));
 }

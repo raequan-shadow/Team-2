@@ -1,4 +1,4 @@
-// Source CSV provides starting occupancy. All values shown are simulated.
+// Parses parking.csv (the seed data the backend imports). Live occupancy comes from the API.
 export function parseParkingCsv(csv) {
   const [header, ...rows] = csv.trim().split(/\r?\n/);
   const keys = header.split(',');
@@ -42,15 +42,4 @@ export function sensorHealth(deck) {
   if (!deck.isDataAvailable || deck.sensorStatus === 'offline') return 'Offline';
   if (deck.sensorStatus === 'stale') return 'Stale';
   return 'Online';
-}
-
-// Each tick changes a few decks, like vehicles entering or leaving.
-export function simulateOccupancy(decks, random = Math.random) {
-  return decks.map(deck => {
-    // A stale or offline sensor stops reporting, so its count stays frozen.
-    if (!deck.isDataAvailable || deck.occupiedSpaces === null || (deck.sensorStatus && deck.sensorStatus !== 'online') || random() > 0.75) return deck;
-    const delta = Math.floor(random() * 21) - 10;
-    const occupiedSpaces = Math.max(0, Math.min(deck.totalCapacity, deck.occupiedSpaces + delta));
-    return { ...deck, occupiedSpaces, lastUpdated: new Date().toISOString() };
-  });
 }

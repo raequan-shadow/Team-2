@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { availableSpaces, availabilityStatus, occupancyLevel, parseParkingCsv, sensorHealth, simulateOccupancy } from './parkingLogic.js';
+import { availableSpaces, availabilityStatus, occupancyLevel, parseParkingCsv, sensorHealth } from './parkingLogic.js';
 import csv from '../../public/data/parking.csv?raw';
 const base = { id: '1', name: 'Deck', totalCapacity: 200, occupiedSpaces: 100, isDataAvailable: true };
 
@@ -62,34 +62,6 @@ describe('parseParkingCsv', () => {
   });
 });
 
-describe('simulateOccupancy', () => {
-  test('never goes below zero', () => {
-    const [deck] = simulateOccupancy([{ ...base, occupiedSpaces: 3 }], () => 0); // delta -10
-    expect(deck.occupiedSpaces).toBe(0);
-  });
-
-  test('changes by at most 10 and stamps lastUpdated', () => {
-    const [deck] = simulateOccupancy([base], () => 0.5); // delta 0..: floor(10.5)-10 = 0
-    expect(Math.abs(deck.occupiedSpaces - 100)).toBeLessThanOrEqual(10);
-    expect(deck.lastUpdated).toBeTruthy();
-  });
-
-  test('skips decks without data', () => {
-    const missing = { ...base, occupiedSpaces: null, isDataAvailable: false };
-    expect(simulateOccupancy([missing], () => 0)[0]).toBe(missing);
-  });
-
-  test('leaves a deck alone when the random roll is above 0.75', () => {
-    expect(simulateOccupancy([base], () => 0.9)[0]).toBe(base);
-  });
-
-  test('does not mutate the input', () => {
-    const input = [{ ...base }];
-    simulateOccupancy(input, () => 0);
-    expect(input[0].occupiedSpaces).toBe(100);
-  });
-});
-
 describe('PATS helpers', () => {
   test('occupancyLevel follows the driver color thresholds', () => {
     expect(occupancyLevel({ ...base, occupiedSpaces: 160 })).toBe('Normal');
@@ -104,11 +76,6 @@ describe('PATS helpers', () => {
     expect(sensorHealth({ ...base, sensorStatus: 'stale' })).toBe('Stale');
     expect(sensorHealth({ ...base, sensorStatus: 'offline' })).toBe('Offline');
     expect(sensorHealth({ ...base, occupiedSpaces: null, isDataAvailable: false })).toBe('Offline');
-  });
-
-  test('stale sensors stop updating during simulation', () => {
-    const stale = { ...base, sensorStatus: 'stale' };
-    expect(simulateOccupancy([stale], () => 0)[0]).toBe(stale);
   });
 
   test('shipped CSV marks West Deck stale and defaults missing sensor status to online', () => {
