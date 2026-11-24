@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
-import { simulateOccupancy } from '../utils/parkingLogic.js';
+import { usePolledApi } from './usePolledApi.js';
 
-const DECKS_API_URL = 'http://127.0.0.1:5000/api/decks';
+export const PARKING_ERROR = 'Parking data is temporarily unavailable. Please try again later.';
 
 function mapDecksResponse(decks) {
   return decks.map(deck => {
@@ -19,30 +18,9 @@ function mapDecksResponse(decks) {
   });
 }
 
+// Deck occupancy comes only from the Flask/SQLite backend. The browser never
+// changes the numbers itself, so every open session shows the same values.
 export function useParkingAvailability() {
-  const [decks, setDecks] = useState([]);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(DECKS_API_URL)
-      .then(res => { if (!res.ok) throw new Error('Parking API could not be loaded'); return res.json(); })
-      .then(data => { if (!cancelled) { setDecks(mapDecksResponse(data)); setLastRefresh(new Date()); } })
-      .catch(() => { if (!cancelled) setError('Parking data is temporarily unavailable. Please try again later.'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    if (loading || error) return;
-    const timer = setInterval(() => {
-      setDecks(current => simulateOccupancy(current));
-      setLastRefresh(new Date());
-    }, 30000);
-    return () => clearInterval(timer);
-  }, [loading, error]);
-
-  return { decks, error, loading, lastRefresh };
+  const { data, loading, failed, stale, lastRefresh } = usePolledApi('/api/decks', mapDecksResponse);
+  return { decks: data ?? [], loading, error: failed ? PARKING_ERROR : '', stale, lastRefresh };
 }

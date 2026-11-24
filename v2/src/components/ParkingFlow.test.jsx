@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import ParkingFlow from './ParkingFlow.jsx';
 import spotsCsv from '../../public/data/spots.csv?raw';
+import { jsonResponse, spotsApiFromCsv } from '../testUtils.js';
 
 const deck = { id: 'D01', name: 'Main Deck', location: 'Main campus', totalCapacity: 300, occupiedSpaces: 45, isDataAvailable: true };
 const eastDeck = { ...deck, id: 'D03', name: 'East Deck 2' };
@@ -11,8 +12,16 @@ const spotButtons = () => screen.getAllByRole('button').filter(b => /^\d[A-Z]-\d
 const spotIds = buttons => buttons.map(b => b.textContent.slice(0, 5));
 const freeSpots = () => spotIds(spotButtons().filter(b => !b.disabled));
 
+// The backend now reports every spot flipped (e.g. another driver parked or left).
+function serverFlipsEverySpot() {
+  const flipped = spotsApiFromCsv(spotsCsv).map(spot => ({ ...spot, occupied: spot.occupied ? 0 : 1 }));
+  globalThis.fetch = vi.fn(() => jsonResponse(flipped));
+}
+// Advances to the next 30-second poll and lets the API response arrive.
+const nextPoll = () => act(async () => { vi.advanceTimersByTime(30000); await new Promise(r => setTimeout(r, 0)); });
+
 function mockSpots(ok = true) {
-  globalThis.fetch = vi.fn(() => Promise.resolve({ ok, text: () => Promise.resolve(spotsCsv) }));
+  globalThis.fetch = vi.fn(() => jsonResponse(spotsApiFromCsv(spotsCsv), ok));
 }
 async function renderFlow(d = deck, onBack = () => {}) {
   const view = render(<ParkingFlow deck={d} onBack={onBack} />);
@@ -89,8 +98,8 @@ describe('spots by level and section', () => {
   test('spot statuses refresh every 30 seconds', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     await act(async () => { render(<ParkingFlow deck={deck} onBack={() => {}} />); await new Promise(r => setTimeout(r, 0)); });
-    vi.spyOn(Math, 'random').mockReturnValue(0); // every spot flips
-    await act(() => vi.advanceTimersByTime(30000));
+    serverFlipsEverySpot();
+    await nextPoll();
     expect(freeSpots()).toEqual(['1A-01', '1A-03', '1B-02', '1B-03']);
   });
 
@@ -99,15 +108,16 @@ describe('spots by level and section', () => {
 describe('selected spot becomes unavailable', () => {
   const alternativeIds = () => screen.getAllByRole('button', { name: /SELECT · LEVEL/ }).map(b => b.textContent.slice(0, 5));
 
-  // Selects 1A-02 (optionally continuing to confirm), then flips every spot so 1A-02 becomes taken.
-  async function selectThenTake({ confirm = false } = {}) {
+  // Selects 1A-02 (optionally continuing to confirm), then the backend reports every spot flipped so 1A-02 is taken.
+  async function selectThenTake({ confirm = false, flipTo } = {}) {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     await act(async () => { render(<ParkingFlow deck={deck} onBack={() => {}} />); await new Promise(r => setTimeout(r, 0)); });
     await act(async () => screen.getByRole('button', { name: /1A-02/ }).click());
     expect(screen.getByText('✓ You selected 1A-02')).toBeTruthy();
     if (confirm) await act(async () => screen.getByRole('button', { name: /Continue with 1A-02/ }).click());
-    vi.spyOn(Math, 'random').mockReturnValue(0);
-    await act(() => vi.advanceTimersByTime(30000));
+    if (flipTo) globalThis.fetch = vi.fn(() => jsonResponse(flipTo));
+    else serverFlipsEverySpot();
+    await nextPoll();
   }
 
   test('while choosing, shows the unavailable screen with same-floor alternatives first', async () => {
@@ -141,8 +151,9 @@ describe('selected spot becomes unavailable', () => {
 
   test('says so when no other spot in the deck is free', async () => {
     const oneFree = 'deckId,level,section,spotId,occupied\nD01,1,A,1A-02,false\n';
-    globalThis.fetch = vi.fn(() => Promise.resolve({ ok: true, text: () => Promise.resolve(oneFree) }));
-    await selectThenTake();
+    const onlyOneFree = spotsApiFromCsv(oneFree);
+    globalThis.fetch = vi.fn(() => jsonResponse(onlyOneFree));
+    await selectThenTake({ flipTo: [{ ...onlyOneFree[0], occupied: 1 }] });
     expect(screen.getByText('Oops! Spot 1A-02 is unavailable.')).toBeTruthy();
     expect(screen.getByText(/there are no other available\s+spots in this deck/)).toBeTruthy();
   });

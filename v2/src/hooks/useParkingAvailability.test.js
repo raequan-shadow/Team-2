@@ -31,10 +31,10 @@ afterEach(() => {
 test('loads and maps API decks, then returns a refresh time', async () => {
   globalThis.fetch = vi.fn(() => respond());
   const { result } = renderHook(() => useParkingAvailability());
-  expect(result.current).toMatchObject({ loading: true, decks: [], error: '', lastRefresh: null });
+  expect(result.current).toMatchObject({ loading: true, decks: [], error: '', stale: false, lastRefresh: null });
 
   await waitFor(() => expect(result.current.loading).toBe(false));
-  expect(fetch).toHaveBeenCalledWith('http://127.0.0.1:5000/api/decks');
+  expect(fetch).toHaveBeenCalledWith('http://127.0.0.1:5000/api/decks', expect.objectContaining({ cache: 'no-store' }));
   expect(result.current.decks).toEqual([
     {
       id: 'DB-ONLY',
@@ -75,14 +75,69 @@ test('network failure sets the friendly error', async () => {
   expect(result.current.decks).toEqual([]);
 });
 
-test('does not start the refresh timer after an error', async () => {
+test('keeps retrying after a failed first load and recovers when the API is back', async () => {
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
-  const spy = vi.spyOn(globalThis, 'setInterval');
   globalThis.fetch = vi.fn(() => respond(false));
   const { result } = renderHook(() => useParkingAvailability());
   await settle();
   expect(result.current.error).not.toBe('');
-  expect(spy).not.toHaveBeenCalled();
+
+  globalThis.fetch = vi.fn(() => respond());
+  await act(() => vi.advanceTimersByTime(30000));
+  await settle();
+  expect(result.current.error).toBe('');
+  expect(result.current.decks[0].occupiedSpaces).toBe(17);
+});
+
+test('each refresh pulls the latest occupancy from the API instead of simulating it', async () => {
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+  const random = vi.spyOn(Math, 'random');
+  globalThis.fetch = vi.fn(() => respond());
+  const { result } = renderHook(() => useParkingAvailability());
+  await settle();
+  expect(result.current.decks[0].occupiedSpaces).toBe(17);
+
+  globalThis.fetch = vi.fn(() => respond(true, [{ ...apiDecks[0], occupiedSpaces: 30 }]));
+  await act(() => vi.advanceTimersByTime(30000));
+  await settle();
+  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(result.current.decks[0].occupiedSpaces).toBe(30);
+  expect(random).not.toHaveBeenCalled();
+});
+
+test('a failed refresh keeps the last good decks and marks them stale', async () => {
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+  globalThis.fetch = vi.fn(() => respond());
+  const { result } = renderHook(() => useParkingAvailability());
+  await settle();
+  const loadedAt = result.current.lastRefresh;
+
+  globalThis.fetch = vi.fn(() => Promise.reject(new Error('offline')));
+  await act(() => vi.advanceTimersByTime(30000));
+  await settle();
+  expect(result.current).toMatchObject({ error: '', stale: true, lastRefresh: loadedAt });
+  expect(result.current.decks[0].occupiedSpaces).toBe(17);
+
+  globalThis.fetch = vi.fn(() => respond());
+  await act(() => vi.advanceTimersByTime(30000));
+  await settle();
+  expect(result.current.stale).toBe(false);
+  expect(result.current.lastRefresh).not.toBe(loadedAt);
+});
+
+test('a malformed API response is treated as a failure', async () => {
+  globalThis.fetch = vi.fn(() => respond(true, { error: 'nope' }));
+  const { result } = renderHook(() => useParkingAvailability());
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  expect(result.current.error).not.toBe('');
+});
+
+test('does not send a second request while one is still pending', async () => {
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+  globalThis.fetch = vi.fn(() => new Promise(() => {}));
+  renderHook(() => useParkingAvailability());
+  await act(() => vi.advanceTimersByTime(60000));
+  expect(fetch).toHaveBeenCalledTimes(1);
 });
 
 test('refresh updates lastRefresh every 30 seconds', async () => {
