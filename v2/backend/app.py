@@ -13,6 +13,14 @@ CORS(app, origins=[
     "http://127.0.0.1:5173"
 ])
 
+# Occupancy changes constantly, so browsers must always ask the API for fresh data.
+@app.after_request
+def disable_api_caching(response):
+    if request.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 # Handle database errors across the API
 @app.errorhandler(SQLAlchemyError)
 def handle_database_error(error):
