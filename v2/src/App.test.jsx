@@ -4,154 +4,372 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import App from './App.jsx';
 
-import csv from '../public/data/parking.csv?raw';
-import spotsCsv from '../public/data/spots.csv?raw';
+const decks = [
+  {
+    id: 'D01',
+    name: 'Main Deck',
+    location: 'East campus',
+    totalCapacity: 300,
+    occupiedSpaces: 45,
+    availableSpaces: 255,
+    isDataAvailable: true,
+    sensorStatus: 'online',
+    lastUpdated: '2026-11-05T13:24:11-05:00',
+    dataType: 'demo'
+  },
+  {
+    id: 'D02',
+    name: 'Union Deck',
+    location: 'Student Union',
+    totalCapacity: 1200,
+    occupiedSpaces: 1180,
+    availableSpaces: 20,
+    isDataAvailable: true,
+    sensorStatus: 'online',
+    lastUpdated: '2026-11-05T13:24:11-05:00',
+    dataType: 'demo'
+  },
+  {
+    id: 'D03',
+    name: 'East Deck 2',
+    location: 'East campus',
+    totalCapacity: 650,
+    occupiedSpaces: 560,
+    availableSpaces: 90,
+    isDataAvailable: true,
+    sensorStatus: 'online',
+    lastUpdated: '2026-11-05T13:24:11-05:00',
+    dataType: 'demo'
+  },
+  {
+    id: 'D04',
+    name: 'North Deck',
+    location: 'North campus',
+    totalCapacity: 600,
+    occupiedSpaces: 40,
+    availableSpaces: 560,
+    isDataAvailable: true,
+    sensorStatus: 'online',
+    lastUpdated: '2026-11-05T13:24:11-05:00',
+    dataType: 'demo'
+  },
+  {
+    id: 'D05',
+    name: 'South Village Deck',
+    location: 'South campus',
+    totalCapacity: 800,
+    occupiedSpaces: 560,
+    availableSpaces: 240,
+    isDataAvailable: true,
+    sensorStatus: 'online',
+    lastUpdated: '2026-11-05T13:24:11-05:00',
+    dataType: 'demo'
+  },
+  {
+    id: 'D06',
+    name: 'West Deck',
+    location: 'West campus area',
+    totalCapacity: 400,
+    occupiedSpaces: 392,
+    availableSpaces: 8,
+    isDataAvailable: true,
+    sensorStatus: 'stale',
+    lastUpdated: '2026-11-05T13:24:11-05:00',
+    dataType: 'demo'
+  }
+];
 
-function mockFetch(ok = true, body = csv) {
-  globalThis.fetch = vi.fn(url => Promise.resolve(url.includes('spots')
-    ? { ok: true, text: () => Promise.resolve(spotsCsv) }
-    : { ok, text: () => Promise.resolve(body) }));
+function mockFetch(ok = true, body = decks) {
+  globalThis.fetch = vi.fn(() =>
+    Promise.resolve({
+      ok,
+      json: () => Promise.resolve(body)
+    })
+  );
 }
 
-const cards = () => screen.getAllByRole('heading', { level: 3 }).map(h => h.textContent);
-const card = name => screen.getByRole('heading', { name }).closest('article');
+const cards = () =>
+  screen.getAllByRole('heading', { level: 3 }).map(h => h.textContent);
+
+const card = name =>
+  screen.getByRole('heading', { name }).closest('article');
 
 beforeEach(() => {
   mockFetch();
   window.scrollTo = vi.fn();
 });
-afterEach(() => vi.useRealTimers());
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 test('shows every deck with capacity, available spaces and totals', async () => {
   render(<App />);
-  expect(screen.getByText('Loading demo parking data...')).toBeTruthy();
+
   await screen.findByText('Main Deck');
+
   expect(cards()).toHaveLength(6);
   expect(within(card('Main Deck')).getByText('255')).toBeTruthy();
   expect(within(card('Main Deck')).getByText('300')).toBeTruthy();
   expect(within(card('Union Deck')).getByText('Almost full')).toBeTruthy();
   expect(within(card('East Deck 2')).getByText('Limited spaces')).toBeTruthy();
-  expect(screen.getByText('1,173')).toBeTruthy(); // 255+20+90+560+240+8
+  expect(screen.getByText('1,173')).toBeTruthy();
   expect(screen.getByText('6/6')).toBeTruthy();
-  expect(fetch).toHaveBeenCalledWith('/data/parking.csv');
+
+  expect(fetch).toHaveBeenCalledWith(
+    'http://127.0.0.1:5000/api/decks'
+  );
 });
 
 test('search filters by name or location, and clearing restores the list', async () => {
   const user = userEvent.setup();
+
   render(<App />);
+
   await screen.findByText('Main Deck');
+
   const box = screen.getByRole('searchbox');
 
+  // Search by deck name
   await user.type(box, 'union');
   expect(cards()).toEqual(['Union Deck']);
 
+  // Search by a unique location
   await user.clear(box);
-  await user.type(box, 'EAST campus');
-  expect(cards()).toEqual(['East Deck 2']);
+  await user.type(box, 'South campus');
+  expect(cards()).toEqual(['South Village Deck']);
 
+  // Search for something that does not exist
   await user.clear(box);
   await user.type(box, 'zzz');
-  expect(screen.getByText('No parking decks match that search.')).toBeTruthy();
+  expect(
+    screen.getByText('No parking decks match that search.')
+  ).toBeTruthy();
 
+  // Clear search and restore all decks
   await user.clear(box);
   expect(cards()).toHaveLength(6);
 });
 
 test('only one deck’s details are open at a time', async () => {
   const user = userEvent.setup();
+
   render(<App />);
+
   await screen.findByText('Main Deck');
-  await user.click(within(card('Main Deck')).getByRole('button', { name: /View details/ }));
-  expect(within(card('Main Deck')).getByText(/Occupied spaces:/)).toBeTruthy();
 
-  await user.click(within(card('West Deck')).getByRole('button', { name: /View details/ }));
-  expect(within(card('Main Deck')).queryByText(/Occupied spaces:/)).toBeNull();
+  await user.click(
+    within(card('Main Deck')).getByRole('button', {
+      name: /View details/
+    })
+  );
 
-  await user.click(within(card('West Deck')).getByRole('button', { name: /Hide details/ }));
+  expect(
+    within(card('Main Deck')).getByText(/Occupied spaces:/)
+  ).toBeTruthy();
+
+  await user.click(
+    within(card('West Deck')).getByRole('button', {
+      name: /View details/
+    })
+  );
+
+  expect(
+    within(card('Main Deck')).queryByText(/Occupied spaces:/)
+  ).toBeNull();
+
+  await user.click(
+    within(card('West Deck')).getByRole('button', {
+      name: /Hide details/
+    })
+  );
+
   expect(screen.queryByText(/Occupied spaces:/)).toBeNull();
 });
 
-test('failed CSV load shows an error, not numbers', async () => {
+test('failed API load shows an error, not numbers', async () => {
   mockFetch(false);
+
   render(<App />);
-  await screen.findByText('Parking data is temporarily unavailable. Please try again later.');
-  expect(screen.queryAllByRole('heading', { level: 3 })).toHaveLength(0);
+
+  await screen.findByText(
+    'Parking data is temporarily unavailable. Please try again later.'
+  );
+
+  expect(
+    screen.queryAllByRole('heading', { level: 3 })
+  ).toHaveLength(0);
 });
 
 test('deck with no occupancy data shows the unavailable message', async () => {
-  mockFetch(true, 'id,name,location,totalCapacity,occupiedSpaces,isDataAvailable\nD9,Ghost Deck,Nowhere,500,,false');
+  mockFetch(true, [
+    {
+      id: 'D9',
+      name: 'Ghost Deck',
+      location: 'Nowhere',
+      totalCapacity: 500,
+      occupiedSpaces: null,
+      availableSpaces: null,
+      isDataAvailable: false,
+      sensorStatus: 'offline',
+      dataType: 'demo'
+    }
+  ]);
+
   render(<App />);
+
   await screen.findByText('Ghost Deck');
-  expect(screen.getByText('Occupancy data is currently unavailable.')).toBeTruthy();
+
+  expect(
+    screen.getByText('Occupancy data is currently unavailable.')
+  ).toBeTruthy();
+
   expect(screen.getByText('0/1')).toBeTruthy();
 });
 
 test('occupancy refreshes automatically every 30 seconds', async () => {
-  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
-  vi.spyOn(Math, 'random').mockReturnValue(0); // every deck loses 10 cars
-  render(<App />);
-  await screen.findByText('Main Deck');
-  expect(within(card('Main Deck')).getByText('255')).toBeTruthy();
+  vi.useFakeTimers({
+    toFake: ['setInterval', 'clearInterval']
+  });
 
-  await act(() => vi.advanceTimersByTime(30000));
-  expect(within(card('Main Deck')).getByText('265')).toBeTruthy();
-  vi.restoreAllMocks();
+  mockFetch();
+
+  render(<App />);
+
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  expect(fetch).toHaveBeenCalledTimes(1);
+
+  await act(async () => {
+    vi.advanceTimersByTime(30000);
+  });
+
+  expect(fetch).toHaveBeenCalledTimes(2);
 });
 
-test('full driver flow: choose deck, pick spot, tap in, tap out, back to list', async () => {
+test('shows a message when individual parking spot data is unavailable', async () => {
   const user = userEvent.setup();
+
   render(<App />);
+
   await screen.findByText('Main Deck');
-  await user.click(within(card('Main Deck')).getByRole('button', { name: /Choose deck/ }));
 
-  const flow = () => within(screen.getByRole('region', { name: 'Parking simulation' }));
-  expect(flow().getByText('255 spaces reported available across this deck.')).toBeTruthy();
-  expect(flow().getByRole('button', { name: /Continue with a spot/ }).disabled).toBe(true);
+  // Open the Main Deck parking flow
+  await user.click(
+    within(card('Main Deck')).getByRole('button', {
+      name: /Choose deck/
+    })
+  );
 
-  const taken = await flow().findByRole('button', { name: /1A-01/ });
-  expect(taken.disabled).toBe(true);
+  const flow = () =>
+    within(
+      screen.getByRole('region', {
+        name: 'Parking simulation'
+      })
+    );
 
-  await user.click(flow().getByRole('button', { name: /1A-02/ }));
-  expect(flow().getByText('✓ You selected 1A-02')).toBeTruthy();
-  await user.click(flow().getByRole('button', { name: /Continue with 1A-02/ }));
+  // Confirm the deck's availability information
+  expect(
+    flow().getByText(
+      '255 spaces reported available across this deck.'
+    )
+  ).toBeTruthy();
 
-  expect(flow().getByText('Spot 1A-02 is shown as free')).toBeTruthy();
-  await user.click(flow().getByRole('button', { name: /Not here/ }));
-  await user.click(flow().getByRole('button', { name: /Continue with 1A-02/ }));
+  // Confirm individual-space data is unavailable
+  expect(
+    flow().getByText(
+      'Individual-space data is unavailable for this deck.'
+    )
+  ).toBeTruthy();
 
-  await user.click(flow().getByRole('button', { name: /Tap in/ }));
-  expect(flow().getByText("✓ You're parked (demo)")).toBeTruthy();
+  // The user cannot continue without selecting a spot
+  expect(
+    flow().getByRole('button', {
+      name: /Continue with a spot/
+    }).disabled
+  ).toBe(true);
 
-  await user.click(flow().getByRole('button', { name: /Tap out/ }));
-  expect(flow().getByText('Thanks for trying SmartPark!')).toBeTruthy();
-  expect(flow().getByText(/Duration:/).parentElement.textContent).toContain('0 minutes');
+  // Return to the parking deck list
+  await user.click(
+    flow().getByRole('button', {
+      name: /All parking decks/
+    })
+  );
 
-  await user.click(flow().getByRole('button', { name: 'See spots again' }));
-  expect(flow().getByText('Choose an available spot')).toBeTruthy();
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('region', {
+        name: 'Parking simulation'
+      })
+    ).toBeNull()
+  );
 
-  await user.click(flow().getByRole('button', { name: /All parking decks/ }));
-  await waitFor(() => expect(screen.queryByRole('region', { name: 'Parking simulation' })).toBeNull());
   expect(cards()).toHaveLength(6);
 });
 
 test('shows the color key and a per-deck update time', async () => {
   render(<App />);
+
   await screen.findByText('Main Deck');
-  expect(screen.getByRole('list', { name: 'Availability color key' })).toBeTruthy();
-  expect(within(card('Main Deck')).getByText(/^Updated /)).toBeTruthy();
+
+  expect(
+    screen.getByRole('list', {
+      name: 'Availability color key'
+    })
+  ).toBeTruthy();
+
+  expect(
+    within(card('Main Deck')).getByText(/^Updated /)
+  ).toBeTruthy();
 });
 
 test('Nearby parking tab finds decks near a building and opens the chosen one', async () => {
   const user = userEvent.setup();
-  render(<App />);
-  await screen.findByText('Main Deck');
-  await user.click(screen.getByRole('button', { name: 'Nearby parking' }));
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Destination building' }), 'Student Union');
-  const first = screen.getAllByRole('listitem')[0];
-  expect(within(first).getByText('Union Deck')).toBeTruthy();
 
-  await user.click(within(first).getByRole('button', { name: /View deck/ }));
-  expect(screen.getByRole('region', { name: 'Parking simulation' })).toBeTruthy();
-  expect(screen.getByText('Union Deck', { selector: '.eyebrow' })).toBeTruthy();
+  render(<App />);
+
+  await screen.findByText('Main Deck');
+
+  await user.click(
+    screen.getByRole('button', {
+      name: 'Nearby parking'
+    })
+  );
+
+  await user.selectOptions(
+    screen.getByRole('combobox', {
+      name: 'Destination building'
+    }),
+    'Student Union'
+  );
+
+  const first = screen.getAllByRole('listitem')[0];
+
+  expect(
+    within(first).getByText('Union Deck')
+  ).toBeTruthy();
+
+  await user.click(
+    within(first).getByRole('button', {
+      name: /View deck/
+    })
+  );
+
+  expect(
+    screen.getByRole('region', {
+      name: 'Parking simulation'
+    })
+  ).toBeTruthy();
+
+  expect(
+    screen.getByText('Union Deck', {
+      selector: '.eyebrow'
+    })
+  ).toBeTruthy();
+
   expect(window.scrollTo).toHaveBeenCalled();
 });
