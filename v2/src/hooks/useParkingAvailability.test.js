@@ -54,12 +54,30 @@ const decks = [
   },
 ];
 
+const apiDecks = [
+  {
+    id: 'DB-ONLY',
+    name: 'Persisted Test Deck',
+    location: 'Database campus',
+    totalCapacity: 80,
+    occupiedSpaces: 17,
+    availableSpaces: 63,
+    occupancy: 21.25,
+    status: 'Green',
+    lastUpdated: '2026-11-15T20:00:00-05:00',
+    isDataAvailable: true,
+    dataType: 'database',
+    sensorStatus: 'online',
+  },
+];
+
+// A real timeout lets the fetch chain finish while interval timers are faked.
 const settle = () => act(() => new Promise(resolve => setTimeout(resolve, 0)));
 
-const respond = (ok = true) =>
+const respond = (ok = true, data = decks) =>
   Promise.resolve({
     ok,
-    json: () => Promise.resolve(decks),
+    json: () => Promise.resolve(data),
   });
 
 afterEach(() => {
@@ -67,7 +85,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test('starts loading, then returns decks and a refresh time', async () => {
+test('loads and maps API decks, then returns a refresh time', async () => {
   globalThis.fetch = vi.fn(() => respond());
 
   const { result } = renderHook(() => useParkingAvailability());
@@ -81,9 +99,53 @@ test('starts loading, then returns decks and a refresh time', async () => {
 
   await waitFor(() => expect(result.current.loading).toBe(false));
 
+  expect(fetch).toHaveBeenCalledWith('http://127.0.0.1:5000/api/decks');
   expect(result.current.decks).toHaveLength(6);
   expect(result.current.lastRefresh).toBeInstanceOf(Date);
   expect(result.current.error).toBe('');
+});
+
+test('maps database API deck information correctly', async () => {
+  globalThis.fetch = vi.fn(() => respond(true, apiDecks));
+
+  const { result } = renderHook(() => useParkingAvailability());
+
+  await waitFor(() => expect(result.current.loading).toBe(false));
+
+  expect(result.current.decks).toEqual([
+    {
+      id: 'DB-ONLY',
+      name: 'Persisted Test Deck',
+      location: 'Database campus',
+      totalCapacity: 80,
+      occupiedSpaces: 17,
+      isDataAvailable: true,
+      lastUpdated: '2026-11-15T20:00:00-05:00',
+      sensorStatus: 'online',
+    },
+  ]);
+});
+
+test('maps unavailable API occupancy to null', async () => {
+  globalThis.fetch = vi.fn(() =>
+    respond(true, [
+      {
+        ...apiDecks[0],
+        occupiedSpaces: null,
+        availableSpaces: null,
+        isDataAvailable: false,
+      },
+    ])
+  );
+
+  const { result } = renderHook(() => useParkingAvailability());
+
+  await waitFor(() => expect(result.current.loading).toBe(false));
+
+  expect(result.current.decks[0]).toMatchObject({
+    occupiedSpaces: null,
+    isDataAvailable: false,
+  });
 });
 
 test('network failure sets the friendly error', async () => {
@@ -140,9 +202,10 @@ test('unmounting before the API response does not update state', async () => {
   let resolve;
 
   globalThis.fetch = vi.fn(
-    () => new Promise(resolvePromise => {
-      resolve = resolvePromise;
-    })
+    () =>
+      new Promise(resolvePromise => {
+        resolve = resolvePromise;
+      })
   );
 
   const { result, unmount } = renderHook(() => useParkingAvailability());
@@ -152,10 +215,10 @@ test('unmounting before the API response does not update state', async () => {
   await act(async () => {
     resolve({
       ok: true,
-      json: () => Promise.resolve(decks),
+      json: () => Promise.resolve(apiDecks),
     });
   });
 
   expect(result.current.decks).toEqual([]);
   expect(errors).not.toHaveBeenCalled();
-});
+}); 

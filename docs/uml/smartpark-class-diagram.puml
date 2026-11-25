@@ -1,0 +1,40 @@
+@startuml
+title SmartPark - Flask / SQLAlchemy / SQLite ORM
+hide methods
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+class ParkingDeck <<table: parking_decks>> {
+  +id: TEXT <<PK>> {nullable}
+  +name: TEXT {not null}
+  +location: TEXT {nullable}
+  +total_capacity: INTEGER {nullable}
+  +occupied_spaces: INTEGER {nullable}
+  +available_spaces: INTEGER {nullable}
+  +occupancy: REAL {nullable}
+  +status: TEXT {nullable}
+  +last_updated: TEXT {nullable}
+  +is_data_available: INTEGER {nullable}
+  +data_type: TEXT {nullable}
+  +sensor_status: TEXT {nullable}
+  --
+  +spots: list[ParkingSpot] <<relationship>>
+}
+
+class ParkingSpot <<table: parking_spots>> {
+  +spot_id: TEXT <<PK>> {nullable}
+  +deck_id: TEXT <<FK: parking_decks.id>> {not null}
+  +level: INTEGER {nullable}
+  +section: TEXT {nullable}
+  +occupied: INTEGER {not null}
+  --
+  +deck: ParkingDeck <<relationship>>
+}
+
+ParkingDeck "1" -- "0..*" ParkingSpot : spots / deck
+
+note bottom
+  Column types and nullability match the SQLAlchemy mappings.
+  The relationship has no configured delete cascade.
+end note
+@enduml

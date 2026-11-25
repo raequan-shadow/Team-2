@@ -1,6 +1,26 @@
+# Frontend dependencies
 node_modules/
 dist/
+
+# Environment variables
 .env
+.env.*
+!.env.example
+
+# Private keys
+*.pem
+*.key
+
+# Local SQLite database files
 *.db
 *.sqlite
 *.sqlite3
+
+# Python dependencies and generated files
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# macOS files
+.DS_Store

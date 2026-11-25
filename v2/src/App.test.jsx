@@ -1,8 +1,9 @@
 import React from 'react';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import App from './App.jsx';
+import spotsCsv from '../public/data/spots.csv?raw';
 
 const decks = [
   {
@@ -12,10 +13,12 @@ const decks = [
     totalCapacity: 300,
     occupiedSpaces: 45,
     availableSpaces: 255,
+    occupancy: 15,
+    status: 'Green',
     isDataAvailable: true,
     sensorStatus: 'online',
-    lastUpdated: '2026-11-05T13:24:11-05:00',
-    dataType: 'demo'
+    lastUpdated: '2026-11-15T20:00:00-05:00',
+    dataType: 'database'
   },
   {
     id: 'D02',
@@ -24,10 +27,12 @@ const decks = [
     totalCapacity: 1200,
     occupiedSpaces: 1180,
     availableSpaces: 20,
+    occupancy: 98.33,
+    status: 'Red',
     isDataAvailable: true,
     sensorStatus: 'online',
-    lastUpdated: '2026-11-05T13:24:11-05:00',
-    dataType: 'demo'
+    lastUpdated: '2026-11-15T20:00:00-05:00',
+    dataType: 'database'
   },
   {
     id: 'D03',
@@ -36,10 +41,12 @@ const decks = [
     totalCapacity: 650,
     occupiedSpaces: 560,
     availableSpaces: 90,
+    occupancy: 86.15,
+    status: 'Yellow',
     isDataAvailable: true,
     sensorStatus: 'online',
-    lastUpdated: '2026-11-05T13:24:11-05:00',
-    dataType: 'demo'
+    lastUpdated: '2026-11-15T20:00:00-05:00',
+    dataType: 'database'
   },
   {
     id: 'D04',
@@ -48,10 +55,12 @@ const decks = [
     totalCapacity: 600,
     occupiedSpaces: 40,
     availableSpaces: 560,
+    occupancy: 6.67,
+    status: 'Green',
     isDataAvailable: true,
     sensorStatus: 'online',
-    lastUpdated: '2026-11-05T13:24:11-05:00',
-    dataType: 'demo'
+    lastUpdated: '2026-11-15T20:00:00-05:00',
+    dataType: 'database'
   },
   {
     id: 'D05',
@@ -60,10 +69,12 @@ const decks = [
     totalCapacity: 800,
     occupiedSpaces: 560,
     availableSpaces: 240,
+    occupancy: 70,
+    status: 'Green',
     isDataAvailable: true,
     sensorStatus: 'online',
-    lastUpdated: '2026-11-05T13:24:11-05:00',
-    dataType: 'demo'
+    lastUpdated: '2026-11-15T20:00:00-05:00',
+    dataType: 'database'
   },
   {
     id: 'D06',
@@ -72,19 +83,28 @@ const decks = [
     totalCapacity: 400,
     occupiedSpaces: 392,
     availableSpaces: 8,
+    occupancy: 98,
+    status: 'Red',
     isDataAvailable: true,
     sensorStatus: 'stale',
-    lastUpdated: '2026-11-05T13:24:11-05:00',
-    dataType: 'demo'
+    lastUpdated: '2026-11-15T20:00:00-05:00',
+    dataType: 'database'
   }
 ];
 
 function mockFetch(ok = true, body = decks) {
-  globalThis.fetch = vi.fn(() =>
-    Promise.resolve({
-      ok,
-      json: () => Promise.resolve(body)
-    })
+  globalThis.fetch = vi.fn(url =>
+    Promise.resolve(
+      url.includes('spots')
+        ? {
+            ok: true,
+            text: () => Promise.resolve(spotsCsv)
+          }
+        : {
+            ok,
+            json: () => Promise.resolve(body)
+          }
+    )
   );
 }
 
@@ -131,23 +151,20 @@ test('search filters by name or location, and clearing restores the list', async
 
   const box = screen.getByRole('searchbox');
 
-  // Search by deck name
   await user.type(box, 'union');
   expect(cards()).toEqual(['Union Deck']);
 
-  // Search by a unique location
   await user.clear(box);
   await user.type(box, 'South campus');
   expect(cards()).toEqual(['South Village Deck']);
 
-  // Search for something that does not exist
   await user.clear(box);
   await user.type(box, 'zzz');
+
   expect(
     screen.getByText('No parking decks match that search.')
   ).toBeTruthy();
 
-  // Clear search and restore all decks
   await user.clear(box);
   expect(cards()).toHaveLength(6);
 });
@@ -212,8 +229,9 @@ test('deck with no occupancy data shows the unavailable message', async () => {
       occupiedSpaces: null,
       availableSpaces: null,
       isDataAvailable: false,
+      lastUpdated: '2026-11-15T20:00:00-05:00',
       sensorStatus: 'offline',
-      dataType: 'demo'
+      dataType: 'database'
     }
   ]);
 
@@ -251,14 +269,13 @@ test('occupancy refreshes automatically every 30 seconds', async () => {
   expect(fetch).toHaveBeenCalledTimes(2);
 });
 
-test('shows a message when individual parking spot data is unavailable', async () => {
+test('shows available individual parking spot data', async () => {
   const user = userEvent.setup();
 
   render(<App />);
 
   await screen.findByText('Main Deck');
 
-  // Open the Main Deck parking flow
   await user.click(
     within(card('Main Deck')).getByRole('button', {
       name: /Choose deck/
@@ -272,43 +289,22 @@ test('shows a message when individual parking spot data is unavailable', async (
       })
     );
 
-  // Confirm the deck's availability information
-  expect(
-    flow().getByText(
-      '255 spaces reported available across this deck.'
-    )
-  ).toBeTruthy();
+  // Check that spot 1A-02 is available.
+  const availableSpot = flow().getByRole('button', {
+    name: /1A-02/
+  });
 
-  // Confirm individual-space data is unavailable
-  expect(
-    flow().getByText(
-      'Individual-space data is unavailable for this deck.'
-    )
-  ).toBeTruthy();
+  expect(availableSpot.textContent).toContain('FREE');
 
-  // The user cannot continue without selecting a spot
+  // Select the available parking spot.
+  await user.click(availableSpot);
+
+  // Confirm the selected spot can be continued with.
   expect(
     flow().getByRole('button', {
-      name: /Continue with a spot/
+      name: /Continue with 1A-02/
     }).disabled
-  ).toBe(true);
-
-  // Return to the parking deck list
-  await user.click(
-    flow().getByRole('button', {
-      name: /All parking decks/
-    })
-  );
-
-  await waitFor(() =>
-    expect(
-      screen.queryByRole('region', {
-        name: 'Parking simulation'
-      })
-    ).toBeNull()
-  );
-
-  expect(cards()).toHaveLength(6);
+  ).toBe(false);
 });
 
 test('shows the color key and a per-deck update time', async () => {

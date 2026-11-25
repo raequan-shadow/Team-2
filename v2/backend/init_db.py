@@ -1,14 +1,14 @@
 
 import csv
-import sqlite3
 from pathlib import Path
 
-# Find the v2 project folder
-BASE_DIR = Path(__file__).resolve().parent.parent
+from sqlalchemy import func, select
+from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy.engine import Connection
 
-# Database and CSV file locations
-DATABASE_DIR = BASE_DIR / "database"
-DATABASE_PATH = DATABASE_DIR / "smartpark.db"
+from config import BASE_DIR, DATABASE_PATH
+from database import create_database_engine
+from models import Base, ParkingDeck, ParkingSpot
 
 PARKING_CSV = BASE_DIR / "public" / "data" / "parking.csv"
 SPOTS_CSV = BASE_DIR / "public" / "data" / "spots.csv"
@@ -18,124 +18,93 @@ def to_bool(value):
     return value.strip().lower() == "true"
 
 
-def initialize_database():
-    # Make the database folder if it doesn't exist
-    DATABASE_DIR.mkdir(parents=True, exist_ok=True)
+def initialize_database(database_path: Path | None = None):
+    resolved_database_path = database_path or DATABASE_PATH
+    resolved_database_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Check that both CSV files exist
     if not PARKING_CSV.exists() or not SPOTS_CSV.exists():
         raise FileNotFoundError("Could not find the parking CSV files.")
 
-    connection = sqlite3.connect(DATABASE_PATH)
+    engine = create_database_engine(resolved_database_path, allow_create=True)
 
     try:
-        connection.execute("PRAGMA foreign_keys = ON")
-
-        with connection:
-            # Create the parking decks table
-            connection.execute("""
-                CREATE TABLE IF NOT EXISTS parking_decks (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    location TEXT,
-                    total_capacity INTEGER,
-                    occupied_spaces INTEGER,
-                    available_spaces INTEGER,
-                    occupancy REAL,
-                    status TEXT,
-                    last_updated TEXT,
-                    is_data_available INTEGER,
-                    data_type TEXT,
-                    sensor_status TEXT
-                )
-            """)
-
-            # Create the individual parking spots table
-            connection.execute("""
-                CREATE TABLE IF NOT EXISTS parking_spots (
-                    spot_id TEXT PRIMARY KEY,
-                    deck_id TEXT NOT NULL,
-                    level INTEGER,
-                    section TEXT,
-                    occupied INTEGER NOT NULL,
-                    FOREIGN KEY (deck_id)
-                        REFERENCES parking_decks(id)
-                )
-            """)
-
-            # Import parking deck information
-            with open(PARKING_CSV, newline="", encoding="utf-8") as file:
-                reader = csv.DictReader(file)
-
-                for row in reader:
-                    connection.execute("""
-                        INSERT INTO parking_decks VALUES (
-                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-                        )
-                        ON CONFLICT(id) DO UPDATE SET
-                            name = excluded.name,
-                            location = excluded.location,
-                            total_capacity = excluded.total_capacity,
-                            occupied_spaces = excluded.occupied_spaces,
-                            available_spaces = excluded.available_spaces,
-                            occupancy = excluded.occupancy,
-                            status = excluded.status,
-                            last_updated = excluded.last_updated,
-                            is_data_available = excluded.is_data_available,
-                            data_type = excluded.data_type,
-                            sensor_status = excluded.sensor_status
-                    """, (
-                        row["id"],
-                        row["name"],
-                        row["location"],
-                        int(row["totalCapacity"]),
-                        int(row["occupiedSpaces"]),
-                        int(row["availableSpaces"]),
-                        float(row["occupancy"]),
-                        row["status"],
-                        row["lastUpdated"],
-                        int(to_bool(row["isDataAvailable"])),
-                        row["dataType"],
-                        row["sensorStatus"]
-                    ))
-
-            # Import individual parking spots
-            with open(SPOTS_CSV, newline="", encoding="utf-8") as file:
-                reader = csv.DictReader(file)
-
-                for row in reader:
-                    connection.execute("""
-                        INSERT INTO parking_spots
-                            (spot_id, deck_id, level, section, occupied)
-                        VALUES (?, ?, ?, ?, ?)
-                        ON CONFLICT(spot_id) DO UPDATE SET
-                            deck_id = excluded.deck_id,
-                            level = excluded.level,
-                            section = excluded.section,
-                            occupied = excluded.occupied
-                    """, (
-                        row["spotId"],
-                        row["deckId"],
-                        int(row["level"]),
-                        row["section"],
-                        int(to_bool(row["occupied"]))
-                    ))
-
-        deck_count = connection.execute(
-            "SELECT COUNT(*) FROM parking_decks"
-        ).fetchone()[0]
-
-        spot_count = connection.execute(
-            "SELECT COUNT(*) FROM parking_spots"
-        ).fetchone()[0]
+        with engine.begin() as connection:
+            Base.metadata.create_all(connection)
+            _import_decks(connection)
+            _import_spots(connection)
+            deck_count = connection.scalar(
+                select(func.count()).select_from(ParkingDeck)
+            )
+            spot_count = connection.scalar(
+                select(func.count()).select_from(ParkingSpot)
+            )
 
         print("SmartPark database initialized successfully!")
         print(f"Parking decks imported: {deck_count}")
         print(f"Parking spots imported: {spot_count}")
-        print(f"Database location: {DATABASE_PATH}")
+        print(f"Database location: {resolved_database_path}")
 
     finally:
-        connection.close()
+        engine.dispose()
+
+
+def _import_decks(connection: Connection) -> None:
+    deck_columns = (
+        "name",
+        "location",
+        "total_capacity",
+        "occupied_spaces",
+        "available_spaces",
+        "occupancy",
+        "status",
+        "last_updated",
+        "is_data_available",
+        "data_type",
+        "sensor_status",
+    )
+    deck_insert = insert(ParkingDeck)
+    upsert = deck_insert.on_conflict_do_update(
+        index_elements=[ParkingDeck.id],
+        set_={column: getattr(deck_insert.excluded, column)
+              for column in deck_columns},
+    )
+
+    with open(PARKING_CSV, newline="", encoding="utf-8") as file:
+        for row in csv.DictReader(file):
+            connection.execute(upsert, {
+                "id": row["id"],
+                "name": row["name"],
+                "location": row["location"],
+                "total_capacity": int(row["totalCapacity"]),
+                "occupied_spaces": int(row["occupiedSpaces"]),
+                "available_spaces": int(row["availableSpaces"]),
+                "occupancy": float(row["occupancy"]),
+                "status": row["status"],
+                "last_updated": row["lastUpdated"],
+                "is_data_available": int(to_bool(row["isDataAvailable"])),
+                "data_type": row["dataType"],
+                "sensor_status": row["sensorStatus"],
+            })
+
+
+def _import_spots(connection: Connection) -> None:
+    spot_columns = ("deck_id", "level", "section", "occupied")
+    spot_insert = insert(ParkingSpot)
+    upsert = spot_insert.on_conflict_do_update(
+        index_elements=[ParkingSpot.spot_id],
+        set_={column: getattr(spot_insert.excluded, column)
+              for column in spot_columns},
+    )
+
+    with open(SPOTS_CSV, newline="", encoding="utf-8") as file:
+        for row in csv.DictReader(file):
+            connection.execute(upsert, {
+                "spot_id": row["spotId"],
+                "deck_id": row["deckId"],
+                "level": int(row["level"]),
+                "section": row["section"],
+                "occupied": int(to_bool(row["occupied"])),
+            })
 
 
 if __name__ == "__main__":

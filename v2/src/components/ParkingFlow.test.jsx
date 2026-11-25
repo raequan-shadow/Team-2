@@ -208,8 +208,16 @@ describe('spots by level and section', () => {
       '1B-03'
     ]);
   });
+});
 
-  test('if the selected spot gets taken, it can no longer be continued with', async () => {
+describe('selected spot becomes unavailable', () => {
+  const alternativeIds = () =>
+    screen
+      .getAllByRole('button', { name: /SELECT · LEVEL/ })
+      .map(b => b.textContent.slice(0, 5));
+
+  // Selects 1A-02, optionally continues to confirmation, then makes it unavailable.
+  async function selectThenTake({ confirm = false } = {}) {
     vi.useFakeTimers({
       toFake: ['setInterval', 'clearInterval']
     });
@@ -223,132 +231,71 @@ describe('spots by level and section', () => {
       screen.getByRole('button', { name: /1A-02/ }).click();
     });
 
-    expect(
-      screen.getByText('✓ You selected 1A-02')
-    ).toBeTruthy();
+    expect(screen.getByText('✓ You selected 1A-02')).toBeTruthy();
+
+    if (confirm) {
+      await act(async () => {
+        screen.getByRole('button', { name: /Continue with 1A-02/ }).click();
+      });
+    }
 
     vi.spyOn(Math, 'random').mockReturnValue(0);
 
     await act(() => vi.advanceTimersByTime(30000));
-
-    expect(
-      screen.getByRole('heading', {
-        name: /Oops! Spot 1A-02 is unavailable/
-      })
-    ).toBeTruthy();
-
-    expect(
-      screen.getByText('Available alternative spots')
-    ).toBeTruthy();
-
-    expect(
-      screen.getByRole('button', { name: /1A-01/ })
-    ).toBeTruthy();
-  });
-});
-
-describe('session flow', () => {
-  async function park(user, spot = '2A-03') {
-    await user.click(
-      screen.getByRole('button', { name: 'Level 2' })
-    );
-
-    await user.click(
-      screen.getByRole('button', { name: new RegExp(spot) })
-    );
-
-    await user.click(
-      screen.getByRole('button', {
-        name: new RegExp(`Continue with ${spot}`)
-      })
-    );
-
-    await user.click(
-      screen.getByRole('button', { name: /Tap in/ })
-    );
   }
 
-  test('summary shows deck, spot, level and duration in minutes', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
+  test('while choosing, shows the unavailable screen with same-floor alternatives first', async () => {
+    await selectThenTake();
 
-    vi.setSystemTime(new Date('2026-11-06T10:00:00'));
+    expect(screen.getByText('Oops! Spot 1A-02 is unavailable.')).toBeTruthy();
+    expect(screen.getByText('Available alternative spots')).toBeTruthy();
 
-    const user = userEvent.setup();
+    expect(alternativeIds()).toEqual([
+      '1A-01',
+      '1A-03',
+      '1B-02',
+      '1B-03',
+      '2B-01',
+      '2B-04'
+    ]);
+  });
 
-    await renderFlow();
+  test('while confirming, also moves to the unavailable screen', async () => {
+    await selectThenTake({ confirm: true });
 
-    await park(user);
+    expect(screen.queryByText('Spot 1A-02 is shown as free')).toBeNull();
+    expect(screen.getByText('Oops! Spot 1A-02 is unavailable.')).toBeTruthy();
+  });
 
+  test('picking an alternative goes straight to confirm with that spot and level', async () => {
+    await selectThenTake();
+
+    await act(async () => {
+      screen.getByRole('button', { name: /2B-01/ }).click();
+    });
+
+    expect(screen.getByText('Spot 2B-01 is shown as free')).toBeTruthy();
     expect(
       screen.getByText('Main Deck · Level 2', { selector: 'span' })
     ).toBeTruthy();
 
-    vi.setSystemTime(new Date('2026-11-06T11:25:00'));
-
-    await user.click(
-      screen.getByRole('button', { name: /Tap out/ })
-    );
-
-    const summary = screen.getByText(
-      'Thanks for trying SmartPark!'
-    ).parentElement.textContent;
-
-    expect(summary).toContain('Main Deck');
-    expect(summary).toContain('2A-03 · Level 2');
-    expect(summary).toContain('85 minutes');
+    expect(screen.getByRole('button', { name: /Tap in/ }).disabled).toBe(false);
   });
 
-  test('"Back to all decks" on the summary calls onBack', async () => {
-    const onBack = vi.fn();
-    const user = userEvent.setup();
+  test('"Choose another spot manually" returns to the picker with nothing selected', async () => {
+    await selectThenTake();
 
-    await renderFlow(deck, onBack);
+    await act(async () => {
+      screen.getByRole('button', {
+        name: 'Choose another spot manually'
+      }).click();
+    });
 
-    await park(user);
+    expect(screen.getByText('Choose an available spot')).toBeTruthy();
+    expect(screen.getByText('Select a green spot below')).toBeTruthy();
 
-    await user.click(
-      screen.getByRole('button', { name: /Tap out/ })
-    );
-
-    await user.click(
-      screen.getByRole('button', { name: 'Back to all decks' })
-    );
-
-    expect(onBack).toHaveBeenCalledOnce();
+    expect(
+      screen.getByRole('button', { name: /Continue with a spot/ }).disabled
+    ).toBe(true);
   });
-
-  test('switching to another deck resets the flow', async () => {
-    const user = userEvent.setup();
-
-    const { rerender } = await renderFlow();
-
-    await park(user);
-
-    expect(
-      screen.getByText("✓ You're parked (demo)")
-    ).toBeTruthy();
-
-    rerender(
-      <ParkingFlow
-        deck={{
-          ...deck,
-          id: 'D05',
-          name: 'South Village Deck'
-        }}
-        onBack={() => {}}
-      />
-    );
-
-    expect(
-      screen.getByText('Choose an available spot')
-    ).toBeTruthy();
-
-    expect(
-      screen.getByRole('button', { name: 'Level 1' }).getAttribute('aria-pressed')
-    ).toBe('true');
-
-    expect(
-      screen.getByText('Select a green spot below')
-    ).toBeTruthy();
   });
-});

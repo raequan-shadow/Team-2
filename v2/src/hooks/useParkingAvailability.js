@@ -1,5 +1,25 @@
 import { useEffect, useState } from 'react';
 
+const DECKS_API_URL = 'http://127.0.0.1:5000/api/decks';
+
+function mapDecksResponse(decks) {
+  return decks.map(deck => {
+    const hasOccupancy =
+      deck.isDataAvailable && deck.occupiedSpaces !== null;
+
+    return {
+      id: deck.id,
+      name: deck.name,
+      location: deck.location,
+      totalCapacity: Number(deck.totalCapacity),
+      occupiedSpaces: hasOccupancy ? Number(deck.occupiedSpaces) : null,
+      isDataAvailable: hasOccupancy,
+      lastUpdated: deck.lastUpdated,
+      sensorStatus: deck.sensorStatus || 'online',
+    };
+  });
+}
+
 export function useParkingAvailability() {
   const [decks, setDecks] = useState([]);
   const [error, setError] = useState('');
@@ -10,14 +30,16 @@ export function useParkingAvailability() {
     let cancelled = false;
 
     const loadParkingData = () => {
-      fetch('http://127.0.0.1:5000/api/decks')
+      fetch(DECKS_API_URL)
         .then(res => {
-          if (!res.ok) throw new Error('Parking data could not be loaded');
+          if (!res.ok) {
+            throw new Error('Parking data could not be loaded');
+          }
           return res.json();
         })
         .then(data => {
           if (!cancelled) {
-            setDecks(data);
+            setDecks(mapDecksResponse(data));
             setError('');
             setLastRefresh(new Date());
           }
@@ -44,3 +66,4 @@ export function useParkingAvailability() {
 
   return { decks, error, loading, lastRefresh };
 }
+ 

@@ -1,7 +1,10 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import sqlite3
-from pathlib import Path
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
+
+from database import SessionLocal
+from models import ParkingDeck, ParkingSpot
 
 app = Flask(__name__)
 
@@ -10,76 +13,93 @@ CORS(app, origins=[
     "http://127.0.0.1:5173"
 ])
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATABASE_PATH = BASE_DIR / "database" / "smartpark.db"
+# Handle database errors across the API
+@app.errorhandler(SQLAlchemyError)
+def handle_database_error(error):
+    app.logger.error("Database error: %s", error)
 
-
-def get_db_connection():
-    connection = sqlite3.connect(DATABASE_PATH)
-    connection.row_factory = sqlite3.Row
-    return connection
+    return jsonify({
+        "error": "Database unavailable",
+        "message": "Unable to access parking data."
+    }), 503
 
 
 @app.route("/api/health", methods=["GET"])
 def health():
-    return jsonify({"message": "SmartPark API is running!"})
+    with SessionLocal() as session:
+        session.execute(select(1).select_from(ParkingDeck).limit(1)).first()
+        session.execute(select(1).select_from(ParkingSpot).limit(1)).first()
+
+    return jsonify({
+        "message": "SmartPark API is running!",
+        "database": "connected",
+        "status": "healthy"
+    }), 200
 
 
 @app.route("/api/decks", methods=["GET"])
 def get_decks():
-    connection = get_db_connection()
-    try:
-        rows = connection.execute(
-            "SELECT * FROM parking_decks ORDER BY id"
-        ).fetchall()
+    with SessionLocal() as session:
+        decks = session.scalars(
+            select(ParkingDeck).order_by(ParkingDeck.id)
+        ).all()
 
-        decks = []
-        for row in rows:
-            decks.append({
-                "id": row["id"],
-                "name": row["name"],
-                "location": row["location"],
-                "totalCapacity": row["total_capacity"],
+        payload = [
+            {
+                "id": deck.id,
+                "name": deck.name,
+                "location": deck.location,
+                "totalCapacity": deck.total_capacity,
                 "occupiedSpaces": (
-                    row["occupied_spaces"]
-                    if row["is_data_available"]
+                    deck.occupied_spaces
+                    if deck.is_data_available
                     else None
                 ),
-                "availableSpaces": row["available_spaces"],
-                "occupancy": row["occupancy"],
-                "status": row["status"],
-                "lastUpdated": row["last_updated"],
-                "isDataAvailable": bool(row["is_data_available"]),
-                "dataType": row["data_type"],
-                "sensorStatus": row["sensor_status"]
-            })
+                "availableSpaces": deck.available_spaces,
+                "occupancy": deck.occupancy,
+                "status": deck.status,
+                "lastUpdated": deck.last_updated,
+                "isDataAvailable": bool(deck.is_data_available),
+                "dataType": deck.data_type,
+                "sensorStatus": deck.sensor_status,
+            }
+            for deck in decks
+        ]
 
-        return jsonify(decks)
-    finally:
-        connection.close()
+    return jsonify(payload)
 
 
 @app.route("/api/spots", methods=["GET"])
 def get_spots():
     deck_id = request.args.get("deckId")
-    connection = get_db_connection()
-    try:
-        if deck_id:
-            spots = connection.execute(
-                """SELECT * FROM parking_spots
-                WHERE deck_id = ?
-                ORDER BY level, section, spot_id""",
-                (deck_id,)
-            ).fetchall()
-        else:
-            spots = connection.execute(
-                """SELECT * FROM parking_spots
-                ORDER BY deck_id, level, section, spot_id"""
-            ).fetchall()
+    statement = select(ParkingSpot)
+    if deck_id:
+        statement = statement.where(ParkingSpot.deck_id == deck_id).order_by(
+            ParkingSpot.level,
+            ParkingSpot.section,
+            ParkingSpot.spot_id,
+        )
+    else:
+        statement = statement.order_by(
+            ParkingSpot.deck_id,
+            ParkingSpot.level,
+            ParkingSpot.section,
+            ParkingSpot.spot_id,
+        )
 
-        return jsonify([dict(spot) for spot in spots])
-    finally:
-        connection.close()
+    with SessionLocal() as session:
+        spots = session.scalars(statement).all()
+
+    return jsonify([
+        {
+            "spot_id": spot.spot_id,
+            "deck_id": spot.deck_id,
+            "level": spot.level,
+            "section": spot.section,
+            "occupied": spot.occupied,
+        }
+        for spot in spots
+    ])
 
 
 if __name__ == "__main__":
