@@ -30,12 +30,18 @@ class ParkingDeck(Base):
 class ParkingSpot(Base):
     __tablename__ = "parking_spots"
 
-    spot_id: Mapped[str] = mapped_column(Text, primary_key=True, nullable=True)
-    deck_id: Mapped[str] = mapped_column(
-        Text,
-        ForeignKey("parking_decks.id"),
-        nullable=False,
-    )
+    #spot_id: Mapped[str] = mapped_column(Text, primary_key=True, nullable=True)
+    #deck_id: Mapped[str] = mapped_column(
+        #Text,
+        #ForeignKey("parking_decks.id"),
+        #nullable=False,
+    #)
+
+    spot_id: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False)
+    deck_id: Mapped[str] = mapped_column(Text, ForeignKey("parking_decks.id"),
+                                         primary_key=True, nullable=False)
+
+
     level: Mapped[int | None] = mapped_column(Integer, nullable=True)
     section: Mapped[str | None] = mapped_column(Text, nullable=True)
     occupied: Mapped[int] = mapped_column(Integer, nullable=False)
