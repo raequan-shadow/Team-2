@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { parseSpotsCsv, simulateSpots, spotsByLevel } from './spotLogic.js';
+import { parseSpotsCsv, spotsByLevel } from './spotLogic.js';
 import csv from '../../public/data/spots.csv?raw';
 
 const spots = parseSpotsCsv(csv);
@@ -35,15 +35,5 @@ describe('spotsByLevel', () => {
 
   test('deck without spot data returns no levels', () => {
     expect(spotsByLevel(spots, 'D99')).toEqual({});
-  });
-});
-
-describe('simulateSpots', () => {
-  test('flips spots when the roll is under 0.1', () => {
-    expect(simulateSpots(spots, () => 0).every((s, i) => s.occupied !== spots[i].occupied)).toBe(true);
-  });
-
-  test('leaves spots alone otherwise, without copying them', () => {
-    expect(simulateSpots(spots, () => 0.5).every((s, i) => s === spots[i])).toBe(true);
   });
 });

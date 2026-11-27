@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react';
+import { usePolledApi } from './usePolledApi.js';
 
-const DECKS_API_URL = 'http://127.0.0.1:5000/api/decks';
+export const PARKING_ERROR = 'Parking data is temporarily unavailable. Please try again later.';
 
 function mapDecksResponse(decks) {
   return decks.map(deck => {
-    const hasOccupancy =
-      deck.isDataAvailable && deck.occupiedSpaces !== null;
-
+    const hasOccupancy = deck.isDataAvailable && deck.occupiedSpaces !== null;
     return {
       id: deck.id,
       name: deck.name,
@@ -20,50 +18,9 @@ function mapDecksResponse(decks) {
   });
 }
 
+// Deck occupancy comes only from the Flask/SQLite backend. The browser never
+// changes the numbers itself, so every open session shows the same values.
 export function useParkingAvailability() {
-  const [decks, setDecks] = useState([]);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadParkingData = () => {
-      fetch(DECKS_API_URL)
-        .then(res => {
-          if (!res.ok) {
-            throw new Error('Parking data could not be loaded');
-          }
-          return res.json();
-        })
-        .then(data => {
-          if (!cancelled) {
-            setDecks(mapDecksResponse(data));
-            setError('');
-            setLastRefresh(new Date());
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setError('Parking data is temporarily unavailable. Please try again later.');
-          }
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
-    };
-
-    loadParkingData();
-
-    const timer = setInterval(loadParkingData, 30000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, []);
-
-  return { decks, error, loading, lastRefresh };
+  const { data, loading, failed, stale, lastRefresh } = usePolledApi('/api/decks', mapDecksResponse);
+  return { decks: data ?? [], loading, error: failed ? PARKING_ERROR : '', stale, lastRefresh };
 }
- 

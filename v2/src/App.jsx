@@ -11,7 +11,8 @@ import NearbyParking from './components/NearbyParking.jsx';
 import { availableSpaces } from './utils/parkingLogic.js';
 
 export default function App() {
-  const { decks, loading, error, lastRefresh } = useParkingAvailability();
+  const { decks, loading, error, stale, lastRefresh } = useParkingAvailability();
+  const refreshTime = lastRefresh ? lastRefresh.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : '';
   const [query, setQuery] = useState('');
   const [selectedDeckId, setSelectedDeckId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
@@ -30,7 +31,8 @@ export default function App() {
     <div className="intro"><p className="eyebrow"></p><h1>Find your next parking spot.</h1><p className="intro-copy">Compare real-time available parking at campus decks.</p></div>
     {/*<div className="intro"><p className="eyebrow">SPRINT 1 · PARKING OVERVIEW</p><h1>Find your next parking spot.</h1><p className="intro-copy">Compare available parking at campus decks before you leave. This is a demonstration using simulated occupancy.</p></div>*/}
     <section className="overview" aria-label="Parking overview"><div><span className="overview-label">Parking decks</span><strong>{decks.length}</strong></div><div><span className="overview-label">Spaces available</span><strong>{availableTotal.toLocaleString()}</strong></div><div><span className="overview-label">Reporting decks</span><strong>{reporting}/{decks.length}</strong></div></section>
-    <section className="listing"><div className="listing-heading"><div><h2>Parking availability</h2><p>Updates automatically every 30 seconds while this page is open.</p></div><span className="updated">{lastRefresh ? `Updated ${lastRefresh.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}` : 'Loading...'}</span></div>
+    <section className="listing"><div className="listing-heading"><div><h2>Parking availability</h2><p>Updates automatically every 30 seconds while this page is open.</p></div><span className="updated">{lastRefresh ? `Updated ${refreshTime}` : 'Loading...'}</span></div>
+      {stale && <p className="unavailable-note stale-note" role="status">Couldn't reach the parking server. Showing the last update from {refreshTime}. Retrying automatically.</p>}
       <SearchBar value={query} onChange={setQuery}/>
       <StatusLegend/>
       {loading ? <EmptyState message="Loading demo parking data..."/> : error ? <EmptyState message={error}/> : filtered.length === 0 ? <EmptyState message="No parking decks match that search."/> : <DeckList decks={filtered} expandedId={expandedId} onExpand={setExpandedId} onChoose={chooseDeck}/>}

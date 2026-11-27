@@ -1,26 +1,19 @@
-import { useEffect, useState } from 'react';
-import { parseSpotsCsv, simulateSpots } from '../utils/spotLogic.js';
+import { usePolledApi } from './usePolledApi.js';
 
+function mapSpotsResponse(spots) {
+  return spots.map(spot => ({
+    deckId: spot.deck_id,
+    level: String(spot.level),
+    section: spot.section,
+    id: spot.spot_id,
+    occupied: Boolean(spot.occupied),
+  }));
+}
+
+// Spot occupancy comes from the Flask/SQLite backend and refreshes with the decks.
 // spots is undefined while loading and null if the spot data can't be loaded.
+// If a later refresh fails, the last loaded spots are kept.
 export function useSpotAvailability() {
-  const [spots, setSpots] = useState(undefined);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/data/spots.csv')
-      .then(res => { if (!res.ok) throw new Error('Spot CSV could not be loaded'); return res.text(); })
-      .then(csv => { if (!cancelled) setSpots(parseSpotsCsv(csv)); })
-      .catch(() => { if (!cancelled) setSpots(null); });
-    return () => { cancelled = true; };
-  }, []);
-
-  // Restart the timer only when spots finish loading, not on every simulated update.
-  const loaded = Boolean(spots);
-  useEffect(() => {
-    if (!loaded) return;
-    const timer = setInterval(() => setSpots(current => simulateSpots(current)), 30000);
-    return () => clearInterval(timer);
-  }, [loaded]);
-
-  return spots;
+  const { data, failed } = usePolledApi('/api/spots', mapSpotsResponse);
+  return failed ? null : data;
 }
