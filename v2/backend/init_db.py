@@ -86,7 +86,7 @@ def _import_decks(connection: Connection) -> None:
                 "sensor_status": row["sensorStatus"],
             })
 
-
+'''
 def _import_spots(connection: Connection) -> None:
     spot_columns = ("deck_id", "level", "section", "occupied")
     spot_insert = insert(ParkingSpot)
@@ -105,7 +105,26 @@ def _import_spots(connection: Connection) -> None:
                 "section": row["section"],
                 "occupied": int(to_bool(row["occupied"])),
             })
+'''
 
+def _import_spots(connection: Connection) -> None:
+    spot_columns = ("level", "section", "occupied")
+    spot_insert = insert(ParkingSpot)
+    upsert = spot_insert.on_conflict_do_update(
+        index_elements=[ParkingSpot.spot_id, ParkingSpot.deck_id],
+        set_={column: getattr(spot_insert.excluded, column)
+              for column in spot_columns},
+    )
+
+    with open(SPOTS_CSV, newline="", encoding="utf-8") as file:
+        for row in csv.DictReader(file):
+            connection.execute(upsert, {
+                "spot_id": row["spotId"],
+                "deck_id": row["deckId"],
+                "level": int(row["level"]),
+                "section": row["section"],
+                "occupied": int(to_bool(row["occupied"])),
+            })
 
 if __name__ == "__main__":
     initialize_database()
