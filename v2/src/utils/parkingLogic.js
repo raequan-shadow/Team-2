@@ -14,6 +14,7 @@ export function parseParkingCsv(csv) {
       occupiedSpaces: available ? Number(entry.occupiedSpaces) : null,
       isDataAvailable: available,
       lastUpdated: entry.lastUpdated,
+      sensorStatus: entry.sensorStatus || 'online',
     };
   });
 }
@@ -32,10 +33,22 @@ export function availabilityStatus(deck) {
   return 'Red';
 }
 
+// PATS dashboard labels. Thresholds match the driver colors: Yellow = approaching, Red = full.
+export function occupancyLevel(deck) {
+  return { Green: 'Normal', Yellow: 'Approaching capacity', Red: 'At capacity', Unavailable: 'No data' }[availabilityStatus(deck)];
+}
+
+export function sensorHealth(deck) {
+  if (!deck.isDataAvailable || deck.sensorStatus === 'offline') return 'Offline';
+  if (deck.sensorStatus === 'stale') return 'Stale';
+  return 'Online';
+}
+
 // Each tick changes a few decks, like vehicles entering or leaving.
 export function simulateOccupancy(decks, random = Math.random) {
   return decks.map(deck => {
-    if (!deck.isDataAvailable || deck.occupiedSpaces === null || random() > 0.75) return deck;
+    // A stale or offline sensor stops reporting, so its count stays frozen.
+    if (!deck.isDataAvailable || deck.occupiedSpaces === null || (deck.sensorStatus && deck.sensorStatus !== 'online') || random() > 0.75) return deck;
     const delta = Math.floor(random() * 21) - 10;
     const occupiedSpaces = Math.max(0, Math.min(deck.totalCapacity, deck.occupiedSpaces + delta));
     return { ...deck, occupiedSpaces, lastUpdated: new Date().toISOString() };

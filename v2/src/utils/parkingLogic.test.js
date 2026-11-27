@@ -1,4 +1,4 @@
-import test from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { availableSpaces, availabilityStatus, parseParkingCsv, simulateOccupancy } from './parkingLogic.js';
 const base = {id:'1',name:'Deck',totalCapacity:200,occupiedSpaces:100,isDataAvailable:true};
