@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 
 // Single place for the Flask API location so it can be made configurable later.
-export const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000'
-).replace(/\/$/, '');
+export const API_BASE_URL = 'http://127.0.0.1:5000';
 export const REFRESH_INTERVAL_MS = 30000;
 export const REQUEST_TIMEOUT_MS = 10000;
 
