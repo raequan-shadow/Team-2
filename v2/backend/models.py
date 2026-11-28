@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from sqlalchemy import ForeignKey, Integer, REAL, Text
+#from sqlalchemy import ForeignKey, Integer, REAL, Text
+from sqlalchemy import ForeignKey, ForeignKeyConstraint, Integer, REAL, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -47,3 +48,23 @@ class ParkingSpot(Base):
     occupied: Mapped[int] = mapped_column(Integer, nullable=False)
 
     deck: Mapped[ParkingDeck] = relationship(back_populates="spots")
+
+class ParkingSession(Base):
+    __tablename__ = "parking_sessions"
+
+    session_id: Mapped[int] = mapped_column(
+        Integer, primary_key=True
+    )
+
+    spot_id: Mapped[str] = mapped_column(Text, nullable=False)
+    deck_id: Mapped[str] = mapped_column(Text, nullable=False)
+
+    started_at: Mapped[str] = mapped_column(Text, nullable=False)
+    ended_at: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["spot_id", "deck_id"],
+            ["parking_spots.spot_id", "parking_spots.deck_id"],
+        ),
+    )
